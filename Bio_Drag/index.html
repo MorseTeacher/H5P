@@ -25,12 +25,12 @@
       background-color: #f8f8f8;
       text-align: center;
     }
-    .dropzone {
-      min-height: 200px;
+    /* Dropzones / Answers columns */
+    .dropzone, .answers {
+      min-height: 220px;
     }
-    .answers {
-      min-height: 200px;
-    }
+
+    /* Draggable items */
     .descriptor {
       margin: 5px 0;
       padding: 5px;
@@ -43,10 +43,13 @@
     .descriptor:hover {
       background-color: #d7d7f2;
     }
+
+    /* Highlight dropzone when dragging over */
     .highlight {
       outline: 2px dashed #888;
     }
-    /* Correct / incorrect feedback */
+
+    /* Correct / Incorrect feedback */
     .correct {
       background-color: #c3f7c3 !important;
     }
@@ -59,7 +62,7 @@
       margin-top: 20px;
       padding: 10px 20px;
       font-size: 14px;
-      border-radius: 25px;
+      border-radius: 25px; /* Rounded corners */
       border: none;
       cursor: pointer;
     }
@@ -77,7 +80,7 @@
 <body>
 
 <h1>Drag the Descriptors into the Correct Column</h1>
-<p><em>Items remain in the “Answers” column, so you can drag them to multiple places if they apply.</em></p>
+<p><em>You can move items freely until you click “Check.” After checking, items are locked. “Restart” clears the columns.</em></p>
 
 <table>
   <thead>
@@ -94,13 +97,10 @@
       <td id="bioDrop" class="dropzone" data-col="0"></td>
       <td id="autoDrop" class="dropzone" data-col="1"></td>
       <td id="memoirDrop" class="dropzone" data-col="2"></td>
-      <!-- Answers column -->
-      <td id="answersCol" class="answers">
-        <!-- data-correct:
-             0 = Biography
-             1 = Autobiography
-             2 = Memoir
-             Comma separated => can be correct in multiple columns 
+      <!-- Answers column: also treated as a dropzone with data-col="answers" -->
+      <td id="answersCol" class="answers" data-col="answers">
+        <!-- Each descriptor has: data-correct="..." listing valid drop column(s).
+             0=Biography, 1=Autobiography, 2=Memoir 
         -->
         <div id="desc1" class="descriptor" draggable="true" data-correct="0">
           Written by someone else
@@ -136,26 +136,30 @@
 <button id="resetButton" class="btn" onclick="resetAnswers()">Restart</button>
 
 <script>
-  // --- DRAG & DROP LOGIC ---
+  // Collect references
+  const dropzones = document.querySelectorAll('.dropzone, .answers');
   const descriptors = document.querySelectorAll('.descriptor');
-  const dropzones = document.querySelectorAll('.dropzone');
 
+  // Attach event listeners to descriptors (draggable)
   descriptors.forEach(desc => {
     desc.addEventListener('dragstart', onDragStart);
   });
 
+  // For each zone (including "Answers"), allow dropping
   dropzones.forEach(zone => {
     zone.addEventListener('dragover', onDragOver);
     zone.addEventListener('dragleave', onDragLeave);
     zone.addEventListener('drop', onDrop);
   });
 
+  // DRAG LOGIC
   function onDragStart(ev) {
+    // Pass the descriptor's id
     ev.dataTransfer.setData('text/plain', ev.target.id);
   }
 
   function onDragOver(ev) {
-    ev.preventDefault(); // allow drop
+    ev.preventDefault(); // Allow drop
     ev.currentTarget.classList.add('highlight');
   }
 
@@ -168,31 +172,35 @@
     ev.currentTarget.classList.remove('highlight');
 
     const draggedId = ev.dataTransfer.getData('text/plain');
-    const originalElem = document.getElementById(draggedId);
+    const draggedElem = document.getElementById(draggedId);
 
-    // Clone the descriptor so it remains in the "Answers" column
-    const clone = originalElem.cloneNode(true);
-    clone.classList.remove('correct', 'incorrect');
-
-    // Append the clone into this dropzone
-    ev.currentTarget.appendChild(clone);
-
-    // Make the new clone draggable as well
-    clone.addEventListener('dragstart', onDragStart);
+    // If we move an element, simply appendChild it to the new container;
+    // The browser automatically removes it from the old parent
+    ev.currentTarget.appendChild(draggedElem);
   }
 
-  // --- CHECK ANSWERS ---
+  // CHECK ANSWERS
   function checkAnswers() {
+    // Lock all descriptors (remove draggable)
+    descriptors.forEach(d => {
+      d.setAttribute('draggable', 'false');
+    });
+
     // Clear old highlights
-    document.querySelectorAll('.descriptor').forEach(d => {
+    descriptors.forEach(d => {
       d.classList.remove('correct', 'incorrect');
     });
 
-    // For each dropzone, check correctness
+    // Check each descriptor's location
     dropzones.forEach(zone => {
-      const colIndex = zone.dataset.col;
+      const colIndex = zone.dataset.col; // '0','1','2' or 'answers'
+      // If it's 'answers', we skip checking
+      if (colIndex === 'answers') return;
+
+      // For each descriptor in this zone:
       zone.querySelectorAll('.descriptor').forEach(desc => {
         const correctCols = desc.dataset.correct.split(',');
+        // Mark correct if colIndex is in data-correct
         if (correctCols.includes(colIndex)) {
           desc.classList.add('correct');
         } else {
@@ -202,15 +210,19 @@
     });
   }
 
-  // --- RESET ANSWERS ---
+  // RESET ANSWERS
   function resetAnswers() {
-    // Clear each dropzone
-    dropzones.forEach(zone => {
-      zone.innerHTML = '';
-    });
-    // Also remove correct/incorrect classes from the original “Answers” descriptors
+    // 1) Return all descriptors to the "answers" column
+    const answersCol = document.getElementById('answersCol');
     descriptors.forEach(d => {
+      answersCol.appendChild(d);
       d.classList.remove('correct', 'incorrect');
+      d.setAttribute('draggable', 'true');
+    });
+
+    // 2) Clear any highlights from dropzones
+    dropzones.forEach(zone => {
+      zone.classList.remove('highlight');
     });
   }
 </script>
