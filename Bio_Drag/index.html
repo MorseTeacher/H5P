@@ -25,14 +25,12 @@
       background-color: #f8f8f8;
       text-align: center;
     }
-    /* The "dropzone" columns and the "answers" column */
     .dropzone {
       min-height: 200px;
     }
     .answers {
       min-height: 200px;
     }
-    /* Draggable items */
     .descriptor {
       margin: 5px 0;
       padding: 5px;
@@ -42,11 +40,9 @@
       cursor: move;
       display: inline-block;
     }
-    /* Show a small pointer icon on hover */
     .descriptor:hover {
       background-color: #d7d7f2;
     }
-    /* Highlight dropzone when an item is dragged over it */
     .highlight {
       outline: 2px dashed #888;
     }
@@ -57,10 +53,24 @@
     .incorrect {
       background-color: #f9c3c3 !important;
     }
-    button {
+
+    /* Button styling */
+    .btn {
       margin-top: 20px;
-      padding: 8px 16px;
+      padding: 10px 20px;
       font-size: 14px;
+      border-radius: 25px;
+      border: none;
+      cursor: pointer;
+    }
+    #checkButton {
+      background-color: #007bff;  /* Blue */
+      color: #fff;
+    }
+    #resetButton {
+      background-color: #ccc;     /* Grey */
+      color: #333;
+      margin-left: 10px;
     }
   </style>
 </head>
@@ -86,10 +96,11 @@
       <td id="memoirDrop" class="dropzone" data-col="2"></td>
       <!-- Answers column -->
       <td id="answersCol" class="answers">
-        <!-- Each descriptor has: 
-           1) "draggable='true'" 
-           2) class="descriptor" 
-           3) data-correct="..." => the column indices (comma-separated) that are correct
+        <!-- data-correct:
+             0 = Biography
+             1 = Autobiography
+             2 = Memoir
+             Comma separated => can be correct in multiple columns 
         -->
         <div id="desc1" class="descriptor" draggable="true" data-correct="0">
           Written by someone else
@@ -120,32 +131,31 @@
   </tbody>
 </table>
 
-<button onclick="checkAnswers()">Check</button>
+<!-- Buttons -->
+<button id="checkButton" class="btn" onclick="checkAnswers()">Check</button>
+<button id="resetButton" class="btn" onclick="resetAnswers()">Restart</button>
 
 <script>
   // --- DRAG & DROP LOGIC ---
-
-  // 1. Add event listeners to each descriptor (draggables):
   const descriptors = document.querySelectorAll('.descriptor');
+  const dropzones = document.querySelectorAll('.dropzone');
+
   descriptors.forEach(desc => {
     desc.addEventListener('dragstart', onDragStart);
   });
 
-  function onDragStart(ev) {
-    // We'll pass the 'id' of the descriptor being dragged
-    ev.dataTransfer.setData('text/plain', ev.target.id);
-  }
-
-  // 2. Add event listeners for each dropzone (the 3 columns) so they can handle drags:
-  const dropzones = document.querySelectorAll('.dropzone');
   dropzones.forEach(zone => {
     zone.addEventListener('dragover', onDragOver);
     zone.addEventListener('dragleave', onDragLeave);
     zone.addEventListener('drop', onDrop);
   });
 
+  function onDragStart(ev) {
+    ev.dataTransfer.setData('text/plain', ev.target.id);
+  }
+
   function onDragOver(ev) {
-    ev.preventDefault(); // Allows drop
+    ev.preventDefault(); // allow drop
     ev.currentTarget.classList.add('highlight');
   }
 
@@ -160,9 +170,8 @@
     const draggedId = ev.dataTransfer.getData('text/plain');
     const originalElem = document.getElementById(draggedId);
 
-    // Clone the descriptor so it also remains in the "Answers" column:
+    // Clone the descriptor so it remains in the "Answers" column
     const clone = originalElem.cloneNode(true);
-    // Remove any existing correct/incorrect classes on the clone
     clone.classList.remove('correct', 'incorrect');
 
     // Append the clone into this dropzone
@@ -172,28 +181,36 @@
     clone.addEventListener('dragstart', onDragStart);
   }
 
-  // --- CHECK LOGIC ---
+  // --- CHECK ANSWERS ---
   function checkAnswers() {
     // Clear old highlights
     document.querySelectorAll('.descriptor').forEach(d => {
       d.classList.remove('correct', 'incorrect');
     });
 
-    // For each dropzone, get its column index
+    // For each dropzone, check correctness
     dropzones.forEach(zone => {
       const colIndex = zone.dataset.col;
-
-      // Go through each descriptor in this zone
       zone.querySelectorAll('.descriptor').forEach(desc => {
-        // The descriptor lists which columns are valid in data-correct
         const correctCols = desc.dataset.correct.split(',');
-        // If the descriptor's correctCols includes colIndex, it's correct
         if (correctCols.includes(colIndex)) {
           desc.classList.add('correct');
         } else {
           desc.classList.add('incorrect');
         }
       });
+    });
+  }
+
+  // --- RESET ANSWERS ---
+  function resetAnswers() {
+    // Clear each dropzone
+    dropzones.forEach(zone => {
+      zone.innerHTML = '';
+    });
+    // Also remove correct/incorrect classes from the original “Answers” descriptors
+    descriptors.forEach(d => {
+      d.classList.remove('correct', 'incorrect');
     });
   }
 </script>
