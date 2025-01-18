@@ -2,91 +2,91 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Spelling Flashcards</title>
+  <title>Spelling Flashcards Overlap</title>
   <style>
-    /* Center the entire activity container on the page */
     body {
       font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      display: flex;
-      justify-content: center; /* horizontally center */
-      align-items: center;     /* vertically center if there's enough page height */
-      min-height: 100vh;       /* full viewport height */
-      background-color: #f2f2f2; /* light background for contrast */
-    }
-
-    /* The main container to keep everything together and nicely sized */
-    #mainContainer {
-      background-color: #fff;
-      border: 1px solid #ccc;
-      border-radius: 6px;
-      width: 800px;
-      max-width: 95%;
-      margin: 20px auto; 
-      padding: 20px;
+      margin: 20px; /* Left at default, no full-page centering */
+      background-color: #f2f2f2;
     }
 
     h1 {
       margin-bottom: 10px;
-      text-align: center;
     }
 
-    /* The table with two cells: left = flashcard, right = input */
-    table {
-      width: 100%;
-      table-layout: fixed;
-      border-collapse: collapse;
-      height: 300px; /* fixed height to help vertical-centering */
-    }
-    td {
-      border: 1px solid #ccc;
-      vertical-align: middle; /* ensures the content inside is vertically centered */
-      padding: 20px;
+    /* Container for the card so we can absolutely position an overlay */
+    #cardContainer {
+      position: relative;
+      width: 400px;  /* fixed width for the card */
+      height: 200px; /* fixed height for the card */
+      margin-bottom: 20px;
+      /* This margin-left is optional if you want it further left or indented */
+      margin-left: 0;
     }
 
-    /* Flashcard area on the left */
-    #flashcardArea {
-      text-align: center;
-    }
-    /* The “card” rectangle with rounded edges */
+    /* The flashcard background */
     #flashcardCard {
-      background-color: #eef6ff; /* Light blue background */
-      border: 1px solid #77c0ff; 
-      border-radius: 10px;       /* Slightly rounded edges */
-      padding: 30px;
-      min-height: 100px;
+      background-color: #eef6ff; /* Light blue */
+      border: 1px solid #77c0ff;
+      border-radius: 10px; /* slightly rounded */
+      width: 100%;
+      height: 100%;
       display: flex;
-      align-items: center;
       justify-content: center;
-      font-size: 2em;            /* Big letters */
-      color: #000;              /* Black text */
-    }
-
-    /* Input area on the right */
-    #inputArea {
+      align-items: center;
+      font-size: 2em;
+      color: #000;
+      padding: 10px;
+      box-sizing: border-box;
       text-align: center;
     }
+
+    /* Overlays on top of the card (for input or result text) */
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex; /* to center content */
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* The input box that appears over the blank card */
     #spellingInput {
       font-size: 1.2em;
       padding: 8px;
       width: 80%;
       box-sizing: border-box;
+      text-align: center;
     }
-    /* Red highlight on incorrect attempt */
+
+    /* Red highlight if incorrect */
     .red-border {
       border: 2px solid #f00 !important;
       background-color: #f9c3c3 !important;
     }
 
-    /* Buttons (mimicking H5P style) */
-    .btn {
+    /* The highlighted attempt text (correct letters vs. incorrect letters) */
+    #resultText {
+      font-size: 1.2em;
+      text-align: center;
+      white-space: pre-wrap; /* preserve spacing if needed */
+    }
+
+    /* Buttons, mimicking H5P style */
+    #buttonRow {
       margin-top: 20px;
+    }
+    .btn {
       padding: 10px 20px;
       font-size: 14px;
-      border-radius: 25px; /* Rounded corners */
+      border-radius: 25px; /* rounded corners */
       border: none;
       cursor: pointer;
+      margin-right: 10px;
     }
     #nextButton {
       background-color: #007bff;  /* Blue */
@@ -95,50 +95,46 @@
     #resetButton {
       background-color: #ccc;     /* Grey */
       color: #333;
-      margin-left: 10px;
     }
 
-    /* Center the buttons side by side */
-    #buttonRow {
-      margin-top: 20px;
-      text-align: center;
-    }
   </style>
 </head>
 <body>
 
-<div id="mainContainer">
-  <h1>Spelling Practice</h1>
-  <p style="text-align:center;">
-    <em>
-      1) Look at the flashcard on the left<br/>
-      2) Click “Next” to type the word on the right<br/>
-      3) If incorrect, the input goes red and you see the flashcard again<br/>
-      4) Underscores show how many letters to spell
-    </em>
-  </p>
+<h1>Spelling Practice</h1>
+<p>
+  <em>
+    Cycle per word:<br>
+    1) Flashcard shows the correct word → Next<br>
+    2) Input overlay (blank card) → type & Next<br>
+    3) If wrong, show letters with errors in red → Next<br>
+    4) Back to flashcard → Next → Input again, etc.<br>
+    If correct, jump straight to next word.
+  </em>
+</p>
 
-  <table>
-    <tr>
-      <!-- Left: Flashcard area -->
-      <td id="flashcardArea">
-        <div id="flashcardCard"></div>
-      </td>
-      <!-- Right: Input area -->
-      <td id="inputArea"></td>
-    </tr>
-  </table>
+<div id="cardContainer">
+  <!-- The card background itself -->
+  <div id="flashcardCard"></div>
 
-  <div id="buttonRow">
-    <button id="nextButton" class="btn">Next</button>
-    <button id="resetButton" class="btn">Restart</button>
+  <!-- Overlay for the input field (shown in 'input' mode) -->
+  <div id="inputOverlay" class="overlay" style="display: none;">
+    <input type="text" id="spellingInput" />
+  </div>
+
+  <!-- Overlay for the result text (shown in 'result' mode) -->
+  <div id="resultOverlay" class="overlay" style="display: none;">
+    <div id="resultText"></div>
   </div>
 </div>
 
+<div id="buttonRow">
+  <button id="nextButton" class="btn">Next</button>
+  <button id="resetButton" class="btn">Restart</button>
+</div>
+
 <script>
-/* 
-  WORD LIST
-*/
+// WORD LIST
 const words = [
   "autobiography",
   "biography",
@@ -152,100 +148,148 @@ const words = [
   "comprehension"
 ];
 
-/* 
-  STATE:
-  - currentIndex: which word in the list we are on
-  - mode: "flashcard" or "input"
+/*
+  MODES (State Machine):
+   "flashcard" -> "input" -> after checking spelling:
+     if correct => next word flashcard or done
+     if wrong   => "result" -> next => "flashcard" -> next => "input" -> ...
+   "result"    -> user sees attempted letters with errors
+   "done"
 */
 let currentIndex = 0;
-let mode = "flashcard"; 
+let mode = "flashcard";
 
-// DOM references
-const flashcardCard = document.getElementById("flashcardCard");
-const inputArea = document.getElementById("inputArea");
-const nextButton = document.getElementById("nextButton");
-const resetButton = document.getElementById("resetButton");
+const flashcardCard  = document.getElementById("flashcardCard");
+const inputOverlay   = document.getElementById("inputOverlay");
+const spellingInput  = document.getElementById("spellingInput");
+const resultOverlay  = document.getElementById("resultOverlay");
+const resultText     = document.getElementById("resultText");
+const nextButton     = document.getElementById("nextButton");
+const resetButton    = document.getElementById("resetButton");
 
-// Event listeners
+// Event Listeners
 nextButton.addEventListener("click", onNextClick);
 resetButton.addEventListener("click", onReset);
 
-// Initialize with the first flashcard
+// Initialize
 showFlashcard();
 
-/* Called whenever the "Next" button is clicked */
 function onNextClick() {
-  if (mode === "flashcard") {
-    // Move to input mode
-    mode = "input";
-    showInput();
-  } else {
-    // mode = "input"
-    checkSpelling();
+  switch (mode) {
+    case "flashcard":
+      // Move to input mode
+      showInput();
+      break;
+
+    case "input":
+      // We're about to check the user spelling
+      checkSpelling();
+      break;
+
+    case "result":
+      // After seeing the incorrect attempt, go back to flashcard
+      // (so they see correct spelling again)
+      showFlashcard();
+      break;
+
+    case "done":
+      // Do nothing
+      break;
   }
 }
 
-/* Show the actual word in the flashcard */
+/* Show the correct word in the flashcard, hide overlays */
 function showFlashcard() {
   mode = "flashcard";
-  const currentWord = words[currentIndex];
-  flashcardCard.textContent = currentWord; 
-  inputArea.innerHTML = "";
+  const word = words[currentIndex];
+  flashcardCard.textContent = word;
+
+  inputOverlay.style.display = "none";
+  resultOverlay.style.display = "none";
 }
 
-/* Show underscores in the flashcard, and input on the right */
+/* Show a blank card and input overlay so user can type */
 function showInput() {
   mode = "input";
-  const currentWord = words[currentIndex];
-  // Convert word into underscores (e.g. "abc" -> "___")
-  const underscores = "_".repeat(currentWord.length);
-  flashcardCard.textContent = underscores; // keep the card visible but show underscores
+  flashcardCard.textContent = ""; // blank card
+  inputOverlay.style.display = "flex";  // show the input overlay
+  resultOverlay.style.display = "none"; // hide result overlay
 
-  // Create an input box on the right
-  inputArea.innerHTML = "";
-  const input = document.createElement("input");
-  input.type = "text";
-  input.id = "spellingInput";
-  input.placeholder = "Type the word here...";
-  input.autofocus = true;
-  input.style.verticalAlign = "middle";
-  inputArea.appendChild(input);
-
-  input.focus();
+  // Clear & focus the input
+  spellingInput.value = "";
+  spellingInput.classList.remove("red-border");
+  spellingInput.focus();
 }
 
-/* Check the typed spelling against the correct word */
+/* Show the user attempt with errors in red */
+function showResult(attempt, correct) {
+  mode = "result";
+
+  flashcardCard.textContent = ""; // blank card
+  inputOverlay.style.display = "none";
+  resultOverlay.style.display = "flex";
+
+  resultText.innerHTML = highlightDifferences(attempt, correct);
+}
+
+/* Check the user’s spelling, handle correct/incorrect transitions */
 function checkSpelling() {
-  const userInput = document.getElementById("spellingInput");
-  if (!userInput) return;
-  const attempt = userInput.value.trim();
+  const attempt = spellingInput.value.trim();
   const correct = words[currentIndex];
 
-  // Clear previous red highlight
-  userInput.classList.remove("red-border");
+  // Remove old red border
+  spellingInput.classList.remove("red-border");
 
-  // Case-insensitive comparison
   if (attempt.toLowerCase() === correct.toLowerCase()) {
     // Correct => next word or done
     currentIndex++;
     if (currentIndex >= words.length) {
-      // All done
+      // All spelled
       flashcardCard.textContent = "All Done!";
-      inputArea.innerHTML = "<p>Great job!</p>";
+      inputOverlay.style.display = "none";
+      resultOverlay.style.display = "none";
       mode = "done";
       nextButton.disabled = true;
     } else {
-      // Move to next flashcard
+      // Next word: show its flashcard
       showFlashcard();
     }
   } else {
-    // Incorrect => highlight in red, re-show the correct word in flashcard
-    userInput.classList.add("red-border");
-    showFlashcard();
+    // Incorrect => highlight input, show result overlay
+    spellingInput.classList.add("red-border");
+    showResult(attempt, correct);
   }
 }
 
-/* Restart from the first word */
+/* Build an HTML string highlighting incorrect letters in red, bold */
+function highlightDifferences(attempt, correct) {
+  const maxLen = Math.max(attempt.length, correct.length);
+  let result = "";
+  for (let i = 0; i < maxLen; i++) {
+    const atChar = attempt[i] || "";
+    const coChar = correct[i] || "";
+    // If letters match ignoring case, show black
+    if (atChar.toLowerCase() === coChar.toLowerCase()) {
+      result += `<span style="color:black;">${escapeHtml(atChar)}</span>`;
+    } else {
+      // mismatch
+      // if atChar is empty but correct has a letter, show a missing mark?
+      result += `<span style="color:red;font-weight:bold;">${escapeHtml(atChar)}</span>`;
+    }
+  }
+  // Possibly show " extra letters" if attempt was longer than correct?
+  return result;
+}
+
+// Simple helper to prevent HTML injection
+function escapeHtml(str) {
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/* Reset everything */
 function onReset() {
   currentIndex = 0;
   mode = "flashcard";
