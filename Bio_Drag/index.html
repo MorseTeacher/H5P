@@ -25,13 +25,13 @@
       background-color: #f8f8f8;
       text-align: center;
     }
-    /* Dropzones / Answers columns */
+    /* Columns */
     .dropzone, .answers {
       min-height: 220px;
     }
 
     /* Draggable items */
-    .descriptor {
+    .descriptor, .clone {
       margin: 5px 0;
       padding: 5px;
       background-color: #e2e2f9;
@@ -40,16 +40,16 @@
       cursor: move;
       display: inline-block;
     }
-    .descriptor:hover {
+    .descriptor:hover, .clone:hover {
       background-color: #d7d7f2;
     }
 
-    /* Highlight dropzone when dragging over */
+    /* Highlight dropzone on dragover */
     .highlight {
       outline: 2px dashed #888;
     }
 
-    /* Correct / Incorrect feedback */
+    /* Correct/incorrect feedback */
     .correct {
       background-color: #c3f7c3 !important;
     }
@@ -57,7 +57,7 @@
       background-color: #f9c3c3 !important;
     }
 
-    /* Button styling */
+    /* Buttons */
     .btn {
       margin-top: 20px;
       padding: 10px 20px;
@@ -81,8 +81,10 @@
 
 <h1>Drag the Descriptors into the Correct Column</h1>
 <p>
-  <em>You can move items freely until you click “Check.”  
-  After checking, items are locked in place. “Restart” clears the columns.</em>
+  <em>
+    Some answers can go into multiple columns; you can drag out multiple copies.<br>
+    Once you click “Check,” items become locked. “Restart” clears everything.
+  </em>
 </p>
 
 <table>
@@ -91,18 +93,20 @@
       <th>Biography</th>
       <th>Autobiography</th>
       <th>Memoir</th>
-      <th>Answers</th>
+      <th>Descriptors</th>
     </tr>
   </thead>
   <tbody>
     <tr>
-      <!-- Drop columns -->
+      <!-- 3 drop columns -->
       <td id="bioDrop" class="dropzone" data-col="0"></td>
       <td id="autoDrop" class="dropzone" data-col="1"></td>
       <td id="memoirDrop" class="dropzone" data-col="2"></td>
-      <!-- "Answers" column: also a dropzone with data-col="answers" -->
+      <!-- Answers column (the "stock") -->
       <td id="answersCol" class="answers" data-col="answers">
-        <!-- Each descriptor’s data-correct="..." indicates valid columns (0=Bio, 1=Auto, 2=Memoir) -->
+        <!-- data-correct: list of valid columns (0=Bio,1=Auto,2=Memoir)
+             We'll set data-quantity dynamically based on how many columns are in data-correct.
+        -->
         <div id="desc1" class="descriptor" draggable="true" data-correct="0">
           Written by someone else
         </div>
@@ -132,32 +136,44 @@
   </tbody>
 </table>
 
-<!-- Buttons -->
 <button id="checkButton" class="btn" onclick="checkAnswers()">Check</button>
-<button id="resetButton" class="btn" onclick="resetAnswers()">Restart</button>
+<button id="resetButton" class="btn" onclick="resetActivity()">Restart</button>
 
 <script>
-// Get references
+// Collect references
 const dropzones = document.querySelectorAll('.dropzone, .answers');
-const descriptors = document.querySelectorAll('.descriptor');
 const answersCol = document.getElementById('answersCol');
 
-// Add event listeners to descriptors
-descriptors.forEach(desc => {
-  desc.addEventListener('dragstart', onDragStart);
+// On page load, set data-quantity for each descriptor in Answers
+document.querySelectorAll('.descriptor').forEach(desc => {
+  const correctCols = desc.dataset.correct.split(',');
+  // Quantity = how many columns this descriptor can be placed in (i.e. length of data-correct)
+  desc.dataset.quantity = correctCols.length;
 });
 
-// Make each zone handle drop events
+// ----- DRAG & DROP LOGIC -----
 dropzones.forEach(zone => {
   zone.addEventListener('dragover', onDragOver);
   zone.addEventListener('dragleave', onDragLeave);
   zone.addEventListener('drop', onDrop);
 });
 
-function onDragStart(ev) {
-  // Pass the descriptor's id
-  ev.dataTransfer.setData('text/plain', ev.target.id);
-}
+// If a user starts dragging any descriptor or clone from either answers or a drop zone
+document.addEventListener('dragstart', (ev) => {
+  const target = ev.target;
+  // We only care if the element is a .descriptor or .clone
+  if (target.matches('.descriptor, .clone')) {
+    // Let’s store info about its source parent, original ID, etc.
+    ev.dataTransfer.setData('elementId', target.id);
+
+    // If it's an original descriptor in "answersCol", mark that in the dataTransfer
+    if (target.classList.contains('descriptor') && target.parentNode.id === 'answersCol') {
+      ev.dataTransfer.setData('fromAnswers', 'true');
+    } else {
+      ev.dataTransfer.setData('fromAnswers', 'false');
+    }
+  }
+});
 
 function onDragOver(ev) {
   ev.preventDefault(); // allow drop
@@ -172,61 +188,180 @@ function onDrop(ev) {
   ev.preventDefault();
   ev.currentTarget.classList.remove('highlight');
 
-  const draggedId = ev.dataTransfer.getData('text/plain');
-  const draggedElem = document.getElementById(draggedId);
+  // Gather data from dragstart
+  const elementId = ev.dataTransfer.getData('elementId');
+  const fromAnswers = ev.dataTransfer.getData('fromAnswers') === 'true';
+  const dropZone = ev.currentTarget; // the zone we're dropping into
 
-  // If the draggedElem is already in this zone, do nothing
-  if (ev.currentTarget.contains(draggedElem)) {
-    return; // Already here
+  // If the dragged element is an "original" descriptor from Answers:
+  if (fromAnswers) {
+    const original = document.getElementById(elementId);
+
+    // We only proceed if there's still "stock" left
+    const quantity = parseInt(original.dataset.quantity, 10);
+    if (quantity > 0) {
+      // Check if the drop zone already has a clone with data-orig = original's id
+      if (dropZone.dataset.col !== 'answers') {
+        // If the user tries to drop a second copy into the *same column*, skip
+        if (hasCloneWithOrig(dropZone, elementId)) {
+          // Already in that column, do nothing
+          return;
+        }
+      }
+
+      // Create a new clone
+      const clone = original.cloneNode(true);
+      // Give it a unique ID
+      clone.id = elementId + '-clone-' + Math.random().toString(16).slice(2);
+      clone.classList.remove('descriptor');
+      clone.classList.add('clone');
+      // Store reference to the "original" id
+      clone.dataset.orig = elementId;
+      clone.draggable = true;
+
+      // If dropping into a "dropzone" column, place the clone
+      if (dropZone.dataset.col !== 'answers') {
+        dropZone.appendChild(clone);
+      } else {
+        // If user tries to drop from answers to answers, that does nothing
+        return;
+      }
+
+      // Decrement stock
+      original.dataset.quantity = quantity - 1;
+      // If stock is now 0, hide the original from answers
+      if (parseInt(original.dataset.quantity, 10) === 0) {
+        original.style.display = 'none';
+      }
+    }
+
+  } else {
+    // fromAnswers = false means we are dragging a .clone from some dropzone OR
+    // an original from answers that was previously moved (less likely if your logic has only clones).
+    const draggedElem = document.getElementById(elementId);
+    if (!draggedElem) return;
+
+    // Identify if it’s a “clone” (we expect it to be)
+    if (draggedElem.classList.contains('clone')) {
+      const origId = draggedElem.dataset.orig;
+      const original = document.getElementById(origId);
+
+      // Are we dropping into the same zone it came from?
+      if (dropZone.contains(draggedElem)) {
+        return; // no change
+      }
+
+      // If dropping into the same column already containing a clone of this item, skip
+      if (dropZone.dataset.col !== 'answers' && hasCloneWithOrig(dropZone, origId)) {
+        return; // skip
+      }
+
+      // Remove it from old parent (the browser auto-removes on appendChild, but we handle logic)
+      draggedElem.parentNode.removeChild(draggedElem);
+
+      // If dropping into ANSWERS => increment stock and remove the clone
+      if (dropZone.dataset.col === 'answers') {
+        // Increase the original descriptor’s stock
+        const qty = parseInt(original.dataset.quantity, 10);
+        original.dataset.quantity = qty + 1;
+        // Show original if hidden
+        if (original.style.display === 'none') {
+          original.style.display = '';
+        }
+        // Don’t actually place the clone in answers. We remove it from DOM entirely.
+        // Because the user is “returning” that item to stock.
+      } else {
+        // Move the clone to the new dropzone
+        dropZone.appendChild(draggedElem);
+      }
+
+    } else {
+      // If for some reason it's an original descriptor outside answers, just move it
+      // (But our approach rarely uses original outside 'answers')
+      if (!dropZone.contains(draggedElem)) {
+        dropZone.appendChild(draggedElem);
+      }
+    }
   }
-
-  // Move the descriptor to the new parent
-  ev.currentTarget.appendChild(draggedElem);
 }
 
-// CHECK ANSWERS
+// Helper to see if a dropzone already has a clone of a given original
+function hasCloneWithOrig(zone, origId) {
+  // Check each child .clone in the zone
+  const clones = zone.querySelectorAll('.clone');
+  for (let c of clones) {
+    if (c.dataset.orig === origId) {
+      return true;
+    }
+  }
+  return false;
+}
+
+// ----- CHECK ANSWERS -----
 function checkAnswers() {
-  // Lock all descriptors (remove draggable ability)
-  descriptors.forEach(d => {
-    d.setAttribute('draggable', 'false');
+  // Lock everything (no more dragging)
+  document.querySelectorAll('.descriptor, .clone').forEach(item => {
+    item.setAttribute('draggable', 'false');
+    // remove hover
+    item.style.cursor = 'default';
   });
 
   // Clear old highlights
-  descriptors.forEach(d => {
+  document.querySelectorAll('.clone, .descriptor').forEach(d => {
     d.classList.remove('correct', 'incorrect');
   });
 
-  // For each dropzone (except "answers"), check correctness
+  // For each dropzone (except 'answers'), check clones
   dropzones.forEach(zone => {
     const colIndex = zone.dataset.col; // '0','1','2' or 'answers'
     if (colIndex === 'answers') return;
 
-    // For each descriptor in this zone:
-    zone.querySelectorAll('.descriptor').forEach(desc => {
-      const correctCols = desc.dataset.correct.split(',');
-      // Mark correct if colIndex is in data-correct
+    // Each clone in this zone
+    const clones = zone.querySelectorAll('.clone');
+    clones.forEach(clone => {
+      // The clone has data-correct as well
+      const correctCols = clone.dataset.correct
+        ? clone.dataset.correct.split(',')
+        : clone.getAttribute('data-correct').split(',');
+
       if (correctCols.includes(colIndex)) {
-        desc.classList.add('correct');
+        clone.classList.add('correct');
       } else {
-        desc.classList.add('incorrect');
+        clone.classList.add('incorrect');
       }
     });
   });
 }
 
-// RESET ANSWERS
-function resetAnswers() {
-  // Move all descriptors back to "answersCol"
-  descriptors.forEach(d => {
-    answersCol.appendChild(d);
-    d.classList.remove('correct', 'incorrect');
-    d.setAttribute('draggable', 'true');
+// ----- RESET ACTIVITY -----
+function resetActivity() {
+  // 1) Remove all clones from columns
+  document.querySelectorAll('.clone').forEach(clone => {
+    clone.parentNode.removeChild(clone);
   });
 
+  // 2) Restore all original descriptors to answers
+  const allOriginals = document.querySelectorAll('.descriptor');
+  allOriginals.forEach(orig => {
+    // Put it back in answers
+    answersCol.appendChild(orig);
+    // Show it
+    orig.style.display = '';
+    // Reset quantity
+    const correctCols = orig.dataset.correct.split(',');
+    orig.dataset.quantity = correctCols.length;
+    // Re-enable dragging
+    orig.setAttribute('draggable', 'true');
+    orig.style.cursor = 'move';
+    orig.classList.remove('correct', 'incorrect');
+  });
+
+  // 3) Clear any highlight states
   dropzones.forEach(zone => {
     zone.classList.remove('highlight');
   });
 }
 </script>
+
 </body>
 </html>
