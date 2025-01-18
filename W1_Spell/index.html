@@ -4,24 +4,45 @@
   <meta charset="UTF-8" />
   <title>Spelling Flashcards</title>
   <style>
+    /* Center the entire activity container on the page */
     body {
       font-family: Arial, sans-serif;
-      margin: 20px;
-      max-width: 800px;
-    }
-    h1 {
-      margin-bottom: 10px;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      justify-content: center; /* horizontally center */
+      align-items: center;     /* vertically center if there's enough page height */
+      min-height: 100vh;       /* full viewport height */
+      background-color: #f2f2f2; /* light background for contrast */
     }
 
+    /* The main container to keep everything together and nicely sized */
+    #mainContainer {
+      background-color: #fff;
+      border: 1px solid #ccc;
+      border-radius: 6px;
+      width: 800px;
+      max-width: 95%;
+      margin: 20px auto; 
+      padding: 20px;
+    }
+
+    h1 {
+      margin-bottom: 10px;
+      text-align: center;
+    }
+
+    /* The table with two cells: left = flashcard, right = input */
     table {
       width: 100%;
       table-layout: fixed;
       border-collapse: collapse;
+      height: 300px; /* fixed height to help vertical-centering */
     }
     td {
-      vertical-align: top;
-      padding: 20px;
       border: 1px solid #ccc;
+      vertical-align: middle; /* ensures the content inside is vertically centered */
+      padding: 20px;
     }
 
     /* Flashcard area on the left */
@@ -52,6 +73,7 @@
       width: 80%;
       box-sizing: border-box;
     }
+    /* Red highlight on incorrect attempt */
     .red-border {
       border: 2px solid #f00 !important;
       background-color: #f9c3c3 !important;
@@ -85,29 +107,32 @@
 </head>
 <body>
 
-<h1>Spelling Practice</h1>
-<p>
-  <em>
-    1) Look at the flashcard on the left <br>
-    2) Click “Next” to type the word on the right <br>
-    3) If incorrect, you’ll see it again before retrying.
-  </em>
-</p>
+<div id="mainContainer">
+  <h1>Spelling Practice</h1>
+  <p style="text-align:center;">
+    <em>
+      1) Look at the flashcard on the left<br/>
+      2) Click “Next” to type the word on the right<br/>
+      3) If incorrect, the input goes red and you see the flashcard again<br/>
+      4) Underscores show how many letters to spell
+    </em>
+  </p>
 
-<table>
-  <tr>
-    <!-- Left: Flashcard area -->
-    <td id="flashcardArea">
-      <div id="flashcardCard"></div>
-    </td>
-    <!-- Right: Input area -->
-    <td id="inputArea"></td>
-  </tr>
-</table>
+  <table>
+    <tr>
+      <!-- Left: Flashcard area -->
+      <td id="flashcardArea">
+        <div id="flashcardCard"></div>
+      </td>
+      <!-- Right: Input area -->
+      <td id="inputArea"></td>
+    </tr>
+  </table>
 
-<div id="buttonRow">
-  <button id="nextButton" class="btn">Next</button>
-  <button id="resetButton" class="btn">Restart</button>
+  <div id="buttonRow">
+    <button id="nextButton" class="btn">Next</button>
+    <button id="resetButton" class="btn">Restart</button>
+  </div>
 </div>
 
 <script>
@@ -131,7 +156,6 @@ const words = [
   STATE:
   - currentIndex: which word in the list we are on
   - mode: "flashcard" or "input"
-  - If user is incorrect, we show the flashcard again immediately so they can see the correct spelling 
 */
 let currentIndex = 0;
 let mode = "flashcard"; 
@@ -149,6 +173,7 @@ resetButton.addEventListener("click", onReset);
 // Initialize with the first flashcard
 showFlashcard();
 
+/* Called whenever the "Next" button is clicked */
 function onNextClick() {
   if (mode === "flashcard") {
     // Move to input mode
@@ -160,36 +185,43 @@ function onNextClick() {
   }
 }
 
-// Show the current word in the flashcard
+/* Show the actual word in the flashcard */
 function showFlashcard() {
-  flashcardCard.textContent = words[currentIndex];
-  inputArea.innerHTML = ""; // Clear input on the right
+  mode = "flashcard";
+  const currentWord = words[currentIndex];
+  flashcardCard.textContent = currentWord; 
+  inputArea.innerHTML = "";
 }
 
-// Hide the word, show a text box
+/* Show underscores in the flashcard, and input on the right */
 function showInput() {
-  flashcardCard.textContent = ""; // Hide the flashcard
-  inputArea.innerHTML = "";
+  mode = "input";
+  const currentWord = words[currentIndex];
+  // Convert word into underscores (e.g. "abc" -> "___")
+  const underscores = "_".repeat(currentWord.length);
+  flashcardCard.textContent = underscores; // keep the card visible but show underscores
 
+  // Create an input box on the right
+  inputArea.innerHTML = "";
   const input = document.createElement("input");
   input.type = "text";
   input.id = "spellingInput";
   input.placeholder = "Type the word here...";
   input.autofocus = true;
+  input.style.verticalAlign = "middle";
   inputArea.appendChild(input);
 
   input.focus();
 }
 
-// Compare input with the correct spelling
+/* Check the typed spelling against the correct word */
 function checkSpelling() {
   const userInput = document.getElementById("spellingInput");
   if (!userInput) return;
-
   const attempt = userInput.value.trim();
   const correct = words[currentIndex];
 
-  // Clear any previous red highlight
+  // Clear previous red highlight
   userInput.classList.remove("red-border");
 
   // Case-insensitive comparison
@@ -203,19 +235,17 @@ function checkSpelling() {
       mode = "done";
       nextButton.disabled = true;
     } else {
-      mode = "flashcard";
+      // Move to next flashcard
       showFlashcard();
     }
   } else {
-    // Incorrect => highlight input, then re-show the flashcard
+    // Incorrect => highlight in red, re-show the correct word in flashcard
     userInput.classList.add("red-border");
-    mode = "flashcard";
-    showFlashcard(); 
-    // The user sees the correct word again, and must press Next to return to input mode.
+    showFlashcard();
   }
 }
 
-// Restart from the first word
+/* Restart from the first word */
 function onReset() {
   currentIndex = 0;
   mode = "flashcard";
