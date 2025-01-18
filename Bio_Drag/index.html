@@ -80,7 +80,10 @@
 <body>
 
 <h1>Drag the Descriptors into the Correct Column</h1>
-<p><em>You can move items freely until you click “Check.” After checking, items are locked. “Restart” clears the columns.</em></p>
+<p>
+  <em>You can move items freely until you click “Check.”  
+  After checking, items are locked in place. “Restart” clears the columns.</em>
+</p>
 
 <table>
   <thead>
@@ -97,11 +100,9 @@
       <td id="bioDrop" class="dropzone" data-col="0"></td>
       <td id="autoDrop" class="dropzone" data-col="1"></td>
       <td id="memoirDrop" class="dropzone" data-col="2"></td>
-      <!-- Answers column: also treated as a dropzone with data-col="answers" -->
+      <!-- "Answers" column: also a dropzone with data-col="answers" -->
       <td id="answersCol" class="answers" data-col="answers">
-        <!-- Each descriptor has: data-correct="..." listing valid drop column(s).
-             0=Biography, 1=Autobiography, 2=Memoir 
-        -->
+        <!-- Each descriptor’s data-correct="..." indicates valid columns (0=Bio, 1=Auto, 2=Memoir) -->
         <div id="desc1" class="descriptor" draggable="true" data-correct="0">
           Written by someone else
         </div>
@@ -136,95 +137,96 @@
 <button id="resetButton" class="btn" onclick="resetAnswers()">Restart</button>
 
 <script>
-  // Collect references
-  const dropzones = document.querySelectorAll('.dropzone, .answers');
-  const descriptors = document.querySelectorAll('.descriptor');
+// Get references
+const dropzones = document.querySelectorAll('.dropzone, .answers');
+const descriptors = document.querySelectorAll('.descriptor');
+const answersCol = document.getElementById('answersCol');
 
-  // Attach event listeners to descriptors (draggable)
-  descriptors.forEach(desc => {
-    desc.addEventListener('dragstart', onDragStart);
+// Add event listeners to descriptors
+descriptors.forEach(desc => {
+  desc.addEventListener('dragstart', onDragStart);
+});
+
+// Make each zone handle drop events
+dropzones.forEach(zone => {
+  zone.addEventListener('dragover', onDragOver);
+  zone.addEventListener('dragleave', onDragLeave);
+  zone.addEventListener('drop', onDrop);
+});
+
+function onDragStart(ev) {
+  // Pass the descriptor's id
+  ev.dataTransfer.setData('text/plain', ev.target.id);
+}
+
+function onDragOver(ev) {
+  ev.preventDefault(); // allow drop
+  ev.currentTarget.classList.add('highlight');
+}
+
+function onDragLeave(ev) {
+  ev.currentTarget.classList.remove('highlight');
+}
+
+function onDrop(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('highlight');
+
+  const draggedId = ev.dataTransfer.getData('text/plain');
+  const draggedElem = document.getElementById(draggedId);
+
+  // If the draggedElem is already in this zone, do nothing
+  if (ev.currentTarget.contains(draggedElem)) {
+    return; // Already here
+  }
+
+  // Move the descriptor to the new parent
+  ev.currentTarget.appendChild(draggedElem);
+}
+
+// CHECK ANSWERS
+function checkAnswers() {
+  // Lock all descriptors (remove draggable ability)
+  descriptors.forEach(d => {
+    d.setAttribute('draggable', 'false');
   });
 
-  // For each zone (including "Answers"), allow dropping
+  // Clear old highlights
+  descriptors.forEach(d => {
+    d.classList.remove('correct', 'incorrect');
+  });
+
+  // For each dropzone (except "answers"), check correctness
   dropzones.forEach(zone => {
-    zone.addEventListener('dragover', onDragOver);
-    zone.addEventListener('dragleave', onDragLeave);
-    zone.addEventListener('drop', onDrop);
+    const colIndex = zone.dataset.col; // '0','1','2' or 'answers'
+    if (colIndex === 'answers') return;
+
+    // For each descriptor in this zone:
+    zone.querySelectorAll('.descriptor').forEach(desc => {
+      const correctCols = desc.dataset.correct.split(',');
+      // Mark correct if colIndex is in data-correct
+      if (correctCols.includes(colIndex)) {
+        desc.classList.add('correct');
+      } else {
+        desc.classList.add('incorrect');
+      }
+    });
+  });
+}
+
+// RESET ANSWERS
+function resetAnswers() {
+  // Move all descriptors back to "answersCol"
+  descriptors.forEach(d => {
+    answersCol.appendChild(d);
+    d.classList.remove('correct', 'incorrect');
+    d.setAttribute('draggable', 'true');
   });
 
-  // DRAG LOGIC
-  function onDragStart(ev) {
-    // Pass the descriptor's id
-    ev.dataTransfer.setData('text/plain', ev.target.id);
-  }
-
-  function onDragOver(ev) {
-    ev.preventDefault(); // Allow drop
-    ev.currentTarget.classList.add('highlight');
-  }
-
-  function onDragLeave(ev) {
-    ev.currentTarget.classList.remove('highlight');
-  }
-
-  function onDrop(ev) {
-    ev.preventDefault();
-    ev.currentTarget.classList.remove('highlight');
-
-    const draggedId = ev.dataTransfer.getData('text/plain');
-    const draggedElem = document.getElementById(draggedId);
-
-    // If we move an element, simply appendChild it to the new container;
-    // The browser automatically removes it from the old parent
-    ev.currentTarget.appendChild(draggedElem);
-  }
-
-  // CHECK ANSWERS
-  function checkAnswers() {
-    // Lock all descriptors (remove draggable)
-    descriptors.forEach(d => {
-      d.setAttribute('draggable', 'false');
-    });
-
-    // Clear old highlights
-    descriptors.forEach(d => {
-      d.classList.remove('correct', 'incorrect');
-    });
-
-    // Check each descriptor's location
-    dropzones.forEach(zone => {
-      const colIndex = zone.dataset.col; // '0','1','2' or 'answers'
-      // If it's 'answers', we skip checking
-      if (colIndex === 'answers') return;
-
-      // For each descriptor in this zone:
-      zone.querySelectorAll('.descriptor').forEach(desc => {
-        const correctCols = desc.dataset.correct.split(',');
-        // Mark correct if colIndex is in data-correct
-        if (correctCols.includes(colIndex)) {
-          desc.classList.add('correct');
-        } else {
-          desc.classList.add('incorrect');
-        }
-      });
-    });
-  }
-
-  // RESET ANSWERS
-  function resetAnswers() {
-    // 1) Return all descriptors to the "answers" column
-    const answersCol = document.getElementById('answersCol');
-    descriptors.forEach(d => {
-      answersCol.appendChild(d);
-      d.classList.remove('correct', 'incorrect');
-      d.setAttribute('draggable', 'true');
-    });
-
-    // 2) Clear any highlights from dropzones
-    dropzones.forEach(zone => {
-      zone.classList.remove('highlight');
-    });
-  }
+  dropzones.forEach(zone => {
+    zone.classList.remove('highlight');
+  });
+}
 </script>
 </body>
 </html>
