@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Biography vs. Autobiography vs. Memoir Drag-and-Drop</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      vertical-align: top;
+      padding: 10px;
+    }
+    th {
+      background-color: #f8f8f8;
+      text-align: center;
+    }
+    /* The "dropzone" columns and the "answers" column */
+    .dropzone {
+      min-height: 200px;
+    }
+    .answers {
+      min-height: 200px;
+    }
+    /* Draggable items */
+    .descriptor {
+      margin: 5px 0;
+      padding: 5px;
+      background-color: #e2e2f9;
+      border: 1px solid #aaa;
+      border-radius: 4px;
+      cursor: move;
+      display: inline-block;
+    }
+    /* Show a small pointer icon on hover */
+    .descriptor:hover {
+      background-color: #d7d7f2;
+    }
+    /* Highlight dropzone when an item is dragged over it */
+    .highlight {
+      outline: 2px dashed #888;
+    }
+    /* Correct / incorrect feedback */
+    .correct {
+      background-color: #c3f7c3 !important;
+    }
+    .incorrect {
+      background-color: #f9c3c3 !important;
+    }
+    button {
+      margin-top: 20px;
+      padding: 8px 16px;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Drag the Descriptors into the Correct Column</h1>
+<p><em>Items remain in the “Answers” column, so you can drag them to multiple places if they apply.</em></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Biography</th>
+      <th>Autobiography</th>
+      <th>Memoir</th>
+      <th>Answers</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <!-- Drop columns -->
+      <td id="bioDrop" class="dropzone" data-col="0"></td>
+      <td id="autoDrop" class="dropzone" data-col="1"></td>
+      <td id="memoirDrop" class="dropzone" data-col="2"></td>
+      <!-- Answers column -->
+      <td id="answersCol" class="answers">
+        <!-- Each descriptor has: 
+           1) "draggable='true'" 
+           2) class="descriptor" 
+           3) data-correct="..." => the column indices (comma-separated) that are correct
+        -->
+        <div id="desc1" class="descriptor" draggable="true" data-correct="0">
+          Written by someone else
+        </div>
+        <div id="desc2" class="descriptor" draggable="true" data-correct="2">
+          Focus on a specific time or theme
+        </div>
+        <div id="desc3" class="descriptor" draggable="true" data-correct="0,1">
+          Covers entire lifespan
+        </div>
+        <div id="desc4" class="descriptor" draggable="true" data-correct="1,2">
+          First-person perspective (writer is the subject)
+        </div>
+        <div id="desc5" class="descriptor" draggable="true" data-correct="1">
+          Chronological from birth to adulthood
+        </div>
+        <div id="desc6" class="descriptor" draggable="true" data-correct="0">
+          Often written in third-person
+        </div>
+        <div id="desc7" class="descriptor" draggable="true" data-correct="2">
+          Personal reflections
+        </div>
+        <div id="desc8" class="descriptor" draggable="true" data-correct="1,2">
+          Author is the subject
+        </div>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<button onclick="checkAnswers()">Check</button>
+
+<script>
+  // --- DRAG & DROP LOGIC ---
+
+  // 1. Add event listeners to each descriptor (draggables):
+  const descriptors = document.querySelectorAll('.descriptor');
+  descriptors.forEach(desc => {
+    desc.addEventListener('dragstart', onDragStart);
+  });
+
+  function onDragStart(ev) {
+    // We'll pass the 'id' of the descriptor being dragged
+    ev.dataTransfer.setData('text/plain', ev.target.id);
+  }
+
+  // 2. Add event listeners for each dropzone (the 3 columns) so they can handle drags:
+  const dropzones = document.querySelectorAll('.dropzone');
+  dropzones.forEach(zone => {
+    zone.addEventListener('dragover', onDragOver);
+    zone.addEventListener('dragleave', onDragLeave);
+    zone.addEventListener('drop', onDrop);
+  });
+
+  function onDragOver(ev) {
+    ev.preventDefault(); // Allows drop
+    ev.currentTarget.classList.add('highlight');
+  }
+
+  function onDragLeave(ev) {
+    ev.currentTarget.classList.remove('highlight');
+  }
+
+  function onDrop(ev) {
+    ev.preventDefault();
+    ev.currentTarget.classList.remove('highlight');
+
+    const draggedId = ev.dataTransfer.getData('text/plain');
+    const originalElem = document.getElementById(draggedId);
+
+    // Clone the descriptor so it also remains in the "Answers" column:
+    const clone = originalElem.cloneNode(true);
+    // Remove any existing correct/incorrect classes on the clone
+    clone.classList.remove('correct', 'incorrect');
+
+    // Append the clone into this dropzone
+    ev.currentTarget.appendChild(clone);
+
+    // Make the new clone draggable as well
+    clone.addEventListener('dragstart', onDragStart);
+  }
+
+  // --- CHECK LOGIC ---
+  function checkAnswers() {
+    // Clear old highlights
+    document.querySelectorAll('.descriptor').forEach(d => {
+      d.classList.remove('correct', 'incorrect');
+    });
+
+    // For each dropzone, get its column index
+    dropzones.forEach(zone => {
+      const colIndex = zone.dataset.col;
+
+      // Go through each descriptor in this zone
+      zone.querySelectorAll('.descriptor').forEach(desc => {
+        // The descriptor lists which columns are valid in data-correct
+        const correctCols = desc.dataset.correct.split(',');
+        // If the descriptor's correctCols includes colIndex, it's correct
+        if (correctCols.includes(colIndex)) {
+          desc.classList.add('correct');
+        } else {
+          desc.classList.add('incorrect');
+        }
+      });
+    });
+  }
+</script>
+</body>
+</html>
