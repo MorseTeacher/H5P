@@ -7,7 +7,7 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
-      background-color: #ffffff;
+      background-color: #ffffff; /* Page background now white */
     }
     h1 {
       margin-bottom: 10px;
@@ -23,13 +23,13 @@
       padding: 10px;
     }
 
-    /* DROP ZONES (unmovable titles) */
+    /* DROP ZONES (Titles) - now white background, blue border */
     .dropzone {
       margin: 10px 0;
       padding: 10px;
-      background-color: #ffe2be; /* light orange */
-      border: 1px solid #f9b77e;
-      border-radius: 8px;
+      background-color: #ffffff; /* White */
+      border: 2px solid #007bff; /* Blue border */
+      border-radius: 8px;        /* Rounded corners */
       min-height: 60px;
       display: flex;
       align-items: center;
@@ -42,7 +42,7 @@
     .draggable {
       margin: 10px 0;
       padding: 10px;
-      background-color: #d6ebff; /* pale blue */
+      background-color: #d6ebff; /* Pale blue */
       border: 1px solid #90c0e8;
       border-radius: 8px;
       cursor: move;
@@ -53,17 +53,17 @@
       background-color: #c9e0fa;
     }
 
-    /* Highlight dropzone when item is dragged over */
+    /* Highlight dropzone when item is dragged over it */
     .highlight {
       outline: 2px dashed #777;
     }
 
     /* Correct / incorrect feedback */
     .correct {
-      background-color: #c3f7c3 !important;
+      background-color: #c3f7c3 !important; /* Greenish */
     }
     .incorrect {
-      background-color: #f9c3c3 !important;
+      background-color: #f9c3c3 !important; /* Reddish */
     }
 
     /* Buttons */
@@ -89,7 +89,7 @@
 <body>
 
 <h1>Match These Biographies/Autobiographies</h1>
-<p><em>Instructions: Drag the subjects to match each <strong>title (orange box)</strong> with the correct <strong>subject (blue box)</strong>. Use the title clues to help you. Re-arrange freely until you hit “Check.”</em></p>
+<p><em>Instructions: Match each <strong>title (white box with blue border)</strong> to the correct <strong>subject (pale blue box)</strong>. Re-arrange freely, then click “Check.”</em></p>
 
 <table>
   <tr>
@@ -119,7 +119,7 @@
 
     <!-- RIGHT COLUMN: Draggable subjects -->
     <td id="answersCol">
-      <!-- Each “.draggable” has data-correct to specify which dropzone is correct -->
+      <!-- data-correct indicates which dropzone index is correct -->
       <div class="draggable" draggable="true" data-correct="0">
         Steve Monoghetti (marathon runner)
       </div>
@@ -143,107 +143,106 @@
 <button id="retryButton" class="btn">Try Again</button>
 
 <script>
-// Collect references
-const dropzones = document.querySelectorAll('.dropzone');
-const draggables = document.querySelectorAll('.draggable');
-const checkButton = document.getElementById('checkButton');
-const retryButton = document.getElementById('retryButton');
-const answersCol = document.getElementById('answersCol');
+  // Collect references
+  const dropzones = document.querySelectorAll('.dropzone');
+  const draggables = document.querySelectorAll('.draggable');
+  const checkButton = document.getElementById('checkButton');
+  const retryButton = document.getElementById('retryButton');
+  const answersCol = document.getElementById('answersCol');
 
-// For each draggable
-draggables.forEach(d => {
-  d.addEventListener('dragstart', onDragStart);
-});
+  // For each draggable
+  draggables.forEach(d => {
+    d.addEventListener('dragstart', onDragStart);
+  });
 
-// For each dropzone
-dropzones.forEach(zone => {
-  zone.addEventListener('dragover', onDragOver);
-  zone.addEventListener('dragleave', onDragLeave);
-  zone.addEventListener('drop', onDrop);
-});
+  // For each dropzone
+  dropzones.forEach(zone => {
+    zone.addEventListener('dragover', onDragOver);
+    zone.addEventListener('dragleave', onDragLeave);
+    zone.addEventListener('drop', onDrop);
+  });
 
-function onDragStart(ev) {
-  ev.dataTransfer.setData('text/plain', ev.target.id);
-  // If the element doesn't have an ID, assign one
-  if (!ev.target.id) {
-    ev.target.id = 'drag-' + Math.random().toString(16).slice(2);
-  }
-}
-
-function onDragOver(ev) {
-  ev.preventDefault();
-  ev.currentTarget.classList.add('highlight');
-}
-
-function onDragLeave(ev) {
-  ev.currentTarget.classList.remove('highlight');
-}
-
-function onDrop(ev) {
-  ev.preventDefault();
-  const dropzone = ev.currentTarget;
-  dropzone.classList.remove('highlight');
-
-  // ID of dragged element
-  const draggedId = ev.dataTransfer.getData('text/plain');
-  const draggedElem = document.getElementById(draggedId);
-
-  // If it's already in this dropzone, do nothing
-  if (dropzone.contains(draggedElem)) return;
-
-  // If there's already a draggable in this dropzone, remove it (only 1 subject per zone)
-  // We'll move it back to the answers column
-  const existing = dropzone.querySelector('.draggable');
-  if (existing) {
-    answersCol.appendChild(existing);
+  function onDragStart(ev) {
+    ev.dataTransfer.setData('text/plain', ev.target.id);
+    // If the element doesn't have an ID, assign one
+    if (!ev.target.id) {
+      ev.target.id = 'drag-' + Math.random().toString(16).slice(2);
+    }
   }
 
-  // Move the dragged element into this dropzone
-  dropzone.appendChild(draggedElem);
-}
+  function onDragOver(ev) {
+    ev.preventDefault();
+    ev.currentTarget.classList.add('highlight');
+  }
 
-// CHECK LOGIC
-checkButton.addEventListener('click', () => {
-  // Lock drag
-  draggables.forEach(d => d.setAttribute('draggable', 'false'));
+  function onDragLeave(ev) {
+    ev.currentTarget.classList.remove('highlight');
+  }
 
-  // Clear old correctness classes
-  draggables.forEach(d => {
-    d.classList.remove('correct', 'incorrect');
-  });
+  function onDrop(ev) {
+    ev.preventDefault();
+    const dropzone = ev.currentTarget;
+    dropzone.classList.remove('highlight');
 
-  // For each dropzone, see which draggable is inside
-  dropzones.forEach(zone => {
-    const correctIndex = zone.dataset.drop; // "0","1","2","3","4"
-    const occupant = zone.querySelector('.draggable');
-    if (!occupant) return; // no occupant, skip
+    // ID of dragged element
+    const draggedId = ev.dataTransfer.getData('text/plain');
+    const draggedElem = document.getElementById(draggedId);
 
-    const occupantCorrect = occupant.dataset.correct; 
-    if (occupantCorrect === correctIndex) {
-      occupant.classList.add('correct');
-    } else {
-      occupant.classList.add('incorrect');
+    // If it's already in this dropzone, do nothing
+    if (dropzone.contains(draggedElem)) return;
+
+    // If there's already a draggable in this dropzone, remove it (only 1 subject per zone)
+    const existing = dropzone.querySelector('.draggable');
+    if (existing) {
+      answersCol.appendChild(existing);
     }
-  });
-});
 
-// RETRY LOGIC
-retryButton.addEventListener('click', () => {
-  // Clear dropzones
-  dropzones.forEach(zone => {
-    const occupant = zone.querySelector('.draggable');
-    if (occupant) {
-      answersCol.appendChild(occupant);
-    }
-    zone.classList.remove('highlight');
+    // Move the dragged element into this dropzone
+    dropzone.appendChild(draggedElem);
+  }
+
+  // CHECK LOGIC
+  checkButton.addEventListener('click', () => {
+    // Lock drag
+    draggables.forEach(d => d.setAttribute('draggable', 'false'));
+
+    // Clear old correctness classes
+    draggables.forEach(d => {
+      d.classList.remove('correct', 'incorrect');
+    });
+
+    // For each dropzone, see which draggable is inside
+    dropzones.forEach(zone => {
+      const correctIndex = zone.dataset.drop; // "0","1","2","3","4"
+      const occupant = zone.querySelector('.draggable');
+      if (!occupant) return; // no occupant, skip
+
+      const occupantCorrect = occupant.dataset.correct; 
+      if (occupantCorrect === correctIndex) {
+        occupant.classList.add('correct');
+      } else {
+        occupant.classList.add('incorrect');
+      }
+    });
   });
 
-  // Unlock draggables & clear correctness coloring
-  draggables.forEach(d => {
-    d.setAttribute('draggable', 'true');
-    d.classList.remove('correct', 'incorrect');
+  // RETRY LOGIC
+  retryButton.addEventListener('click', () => {
+    // Clear dropzones
+    dropzones.forEach(zone => {
+      const occupant = zone.querySelector('.draggable');
+      if (occupant) {
+        answersCol.appendChild(occupant);
+      }
+      zone.classList.remove('highlight');
+    });
+
+    // Unlock draggables & clear correctness coloring
+    draggables.forEach(d => {
+      d.setAttribute('draggable', 'true');
+      d.classList.remove('correct', 'incorrect');
+    });
   });
-});
 </script>
 
 </body>
