@@ -1,0 +1,254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Natural vs Built Environment - Drag & Drop</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #ffffff;
+    }
+    h1 {
+      margin-bottom: 10px;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      vertical-align: top;
+      padding: 10px;
+      text-align: center;
+    }
+    th {
+      background-color: #f8f8f8;
+    }
+
+    /* Dropzone columns */
+    .dropzone {
+      min-height: 300px; 
+      /* Enough height to hold multiple items */
+    }
+
+    /* Answers column */
+    #answersCol {
+      min-height: 300px;
+    }
+
+    /* Draggable items */
+    .draggable {
+      margin: 6px 0;
+      padding: 8px;
+      background-color: #d6ebff; /* Pale blue background */
+      border: 1px solid #90c0e8;
+      border-radius: 6px;        /* Rounded corners */
+      cursor: move;
+      text-align: center;
+      display: inline-block;     /* Let them line up or stack */
+      width: 90%; 
+      box-sizing: border-box;
+    }
+    .draggable:hover {
+      background-color: #c9e0fa;
+    }
+
+    /* Highlight dropzone on dragover */
+    .highlight {
+      outline: 2px dashed #777;
+    }
+
+    /* Correct/incorrect feedback */
+    .correct {
+      background-color: #c3f7c3 !important; /* light green */
+    }
+    .incorrect {
+      background-color: #f9c3c3 !important; /* light red */
+    }
+
+    /* Buttons (mimicking H5P style) */
+    .btn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      font-size: 14px;
+      border-radius: 25px; 
+      border: none;
+      cursor: pointer;
+    }
+    #checkButton {
+      background-color: #007bff;
+      color: #fff;
+    }
+    #retryButton {
+      background-color: #ccc;
+      color: #333;
+      margin-left: 10px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>Natural vs. Built Environment</h1>
+<p><em>Drag each item (blue boxes) into either the <strong>Natural Environment</strong> column or the <strong>Built Environment</strong> column.  
+Then click “Check” to see if you got them right, and “Try Again” to reset.</em></p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Natural Environment</th>
+      <th>Built Environment</th>
+      <th>Answers</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <!-- Left dropzone: data-col="0" -->
+      <td id="naturalDrop" class="dropzone" data-col="0"></td>
+      <!-- Middle dropzone: data-col="1" -->
+      <td id="builtDrop" class="dropzone" data-col="1"></td>
+      <!-- Right answers column -->
+      <td id="answersCol">
+        <!-- data-correct="0" => belongs in Natural col; data-correct="1" => Built col -->
+        
+        <!-- 6 examples of Natural Environment (data-correct="0") -->
+        <div class="draggable" draggable="true" data-correct="0">Mountains</div>
+        <div class="draggable" draggable="true" data-correct="0">River</div>
+        <div class="draggable" draggable="true" data-correct="0">Beach</div>
+        <div class="draggable" draggable="true" data-correct="0">Rainforest</div>
+        <div class="draggable" draggable="true" data-correct="0">Desert</div>
+        <div class="draggable" draggable="true" data-correct="0">Coral Reef</div>
+        
+        <!-- 6 examples of Built Environment (data-correct="1") -->
+        <div class="draggable" draggable="true" data-correct="1">Highway</div>
+        <div class="draggable" draggable="true" data-correct="1">Bridge</div>
+        <div class="draggable" draggable="true" data-correct="1">House</div>
+        <div class="draggable" draggable="true" data-correct="1">Stadium</div>
+        <div class="draggable" draggable="true" data-correct="1">Dam</div>
+        <div class="draggable" draggable="true" data-correct="1">City</div>
+        
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<button id="checkButton" class="btn">Check</button>
+<button id="retryButton" class="btn">Try Again</button>
+
+<script>
+/* 
+  We'll implement a drag-and-drop system:
+  - Two dropzones: 
+    data-col="0" => Natural, 
+    data-col="1" => Built.
+  - 12 draggables, each has data-correct="0" or "1".
+  - Check => lock drags, highlight correct in green, incorrect in red.
+  - Retry => reset them all to Answers column, unlock.
+*/
+
+// Gather references
+const dropzones = document.querySelectorAll('.dropzone');
+const draggables = document.querySelectorAll('.draggable');
+const checkButton = document.getElementById('checkButton');
+const retryButton = document.getElementById('retryButton');
+const answersCol = document.getElementById('answersCol');
+
+// Set up drag events for draggables
+draggables.forEach(item => {
+  item.addEventListener('dragstart', onDragStart);
+});
+
+// Set up drop events for each dropzone (and also consider if we want the answers column as a dropzone)
+dropzones.forEach(zone => {
+  zone.addEventListener('dragover', onDragOver);
+  zone.addEventListener('dragleave', onDragLeave);
+  zone.addEventListener('drop', onDrop);
+});
+// If you want to allow moving them back to answers column, treat it as a dropzone too:
+answersCol.addEventListener('dragover', onDragOver);
+answersCol.addEventListener('dragleave', onDragLeave);
+answersCol.addEventListener('drop', onDrop);
+
+function onDragStart(ev) {
+  // store the dragged element's ID
+  ev.dataTransfer.setData('text/plain', ev.target.id);
+  // If it doesn't have an ID, assign one:
+  if (!ev.target.id) {
+    ev.target.id = 'drag-' + Math.random().toString(16).slice(2);
+  }
+}
+
+function onDragOver(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.add('highlight');
+}
+
+function onDragLeave(ev) {
+  ev.currentTarget.classList.remove('highlight');
+}
+
+function onDrop(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('highlight');
+
+  const zone = ev.currentTarget; // the dropzone (or answers column)
+  const draggedId = ev.dataTransfer.getData('text/plain');
+  const draggedElem = document.getElementById(draggedId);
+
+  if (!draggedElem) return;
+  // If it's already in this zone, do nothing
+  if (zone.contains(draggedElem)) return;
+
+  // Append the dragged element to the new zone
+  zone.appendChild(draggedElem);
+}
+
+/* CHECK Button */
+checkButton.addEventListener('click', () => {
+  // Lock all draggables
+  draggables.forEach(d => d.setAttribute('draggable', 'false'));
+
+  // Clear old correctness classes
+  draggables.forEach(d => {
+    d.classList.remove('correct', 'incorrect');
+  });
+
+  // Evaluate each item’s position:
+  dropzones.forEach(zone => {
+    const colIndex = zone.dataset.col; // '0' or '1'
+    // For each item in that zone
+    zone.querySelectorAll('.draggable').forEach(item => {
+      // Check data-correct
+      const correct = item.dataset.correct;
+      if (correct === colIndex) {
+        item.classList.add('correct');
+      } else {
+        item.classList.add('incorrect');
+      }
+    });
+  });
+
+  // Also check if any item is still in answersCol => those are definitely incorrect
+  answersCol.querySelectorAll('.draggable').forEach(item => {
+    // They should have gone to colIndex 0 or 1, so highlight as incorrect
+    item.classList.add('incorrect');
+  });
+});
+
+/* RETRY Button */
+retryButton.addEventListener('click', () => {
+  // Move all items back to answers column
+  draggables.forEach(d => {
+    answersCol.appendChild(d);
+    d.classList.remove('correct', 'incorrect');
+    d.setAttribute('draggable', 'true');
+  });
+
+  // Remove highlight from dropzones
+  dropzones.forEach(z => z.classList.remove('highlight'));
+});
+</script>
+
+</body>
+</html>
