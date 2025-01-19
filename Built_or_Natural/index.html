@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Natural vs Built Environment - Drag & Drop</title>
+  <meta charset="UTF-8" />
+  <title>Natural vs. Built Environment - Drag & Drop</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -29,8 +29,7 @@
 
     /* Dropzone columns */
     .dropzone {
-      min-height: 300px; 
-      /* Enough height to hold multiple items */
+      min-height: 300px; /* Enough height to hold multiple items */
     }
 
     /* Answers column */
@@ -44,11 +43,11 @@
       padding: 8px;
       background-color: #d6ebff; /* Pale blue background */
       border: 1px solid #90c0e8;
-      border-radius: 6px;        /* Rounded corners */
+      border-radius: 6px; /* Rounded corners */
       cursor: move;
       text-align: center;
-      display: inline-block;     /* Let them line up or stack */
-      width: 90%; 
+      display: inline-block; /* Let them line up or stack */
+      width: 90%;
       box-sizing: border-box;
     }
     .draggable:hover {
@@ -91,8 +90,8 @@
 <body>
 
 <h1>Natural vs. Built Environment</h1>
-<p><em>Drag each item (blue boxes) into either the <strong>Natural Environment</strong> column or the <strong>Built Environment</strong> column.  
-Then click “Check” to see if you got them right, and “Try Again” to reset.</em></p>
+<p><em>Drag each item into either the <strong>Natural Environment</strong> column or the <strong>Built Environment</strong> column.  
+Then click “Check.” “Try Again” resets the layout.</em></p>
 
 <table>
   <thead>
@@ -104,31 +103,12 @@ Then click “Check” to see if you got them right, and “Try Again” to rese
   </thead>
   <tbody>
     <tr>
-      <!-- Left dropzone: data-col="0" -->
+      <!-- Left dropzone: data-col="0" => Natural -->
       <td id="naturalDrop" class="dropzone" data-col="0"></td>
-      <!-- Middle dropzone: data-col="1" -->
+      <!-- Middle dropzone: data-col="1" => Built -->
       <td id="builtDrop" class="dropzone" data-col="1"></td>
-      <!-- Right answers column -->
-      <td id="answersCol">
-        <!-- data-correct="0" => belongs in Natural col; data-correct="1" => Built col -->
-        
-        <!-- 6 examples of Natural Environment (data-correct="0") -->
-        <div class="draggable" draggable="true" data-correct="0">Mountains</div>
-        <div class="draggable" draggable="true" data-correct="0">River</div>
-        <div class="draggable" draggable="true" data-correct="0">Beach</div>
-        <div class="draggable" draggable="true" data-correct="0">Rainforest</div>
-        <div class="draggable" draggable="true" data-correct="0">Desert</div>
-        <div class="draggable" draggable="true" data-correct="0">Coral Reef</div>
-        
-        <!-- 6 examples of Built Environment (data-correct="1") -->
-        <div class="draggable" draggable="true" data-correct="1">Highway</div>
-        <div class="draggable" draggable="true" data-correct="1">Bridge</div>
-        <div class="draggable" draggable="true" data-correct="1">House</div>
-        <div class="draggable" draggable="true" data-correct="1">Stadium</div>
-        <div class="draggable" draggable="true" data-correct="1">Dam</div>
-        <div class="draggable" draggable="true" data-correct="1">City</div>
-        
-      </td>
+      <!-- Right answers column (initially empty; we'll populate via JS) -->
+      <td id="answersCol"></td>
     </tr>
   </tbody>
 </table>
@@ -137,46 +117,123 @@ Then click “Check” to see if you got them right, and “Try Again” to rese
 <button id="retryButton" class="btn">Try Again</button>
 
 <script>
-/* 
-  We'll implement a drag-and-drop system:
-  - Two dropzones: 
-    data-col="0" => Natural, 
-    data-col="1" => Built.
-  - 12 draggables, each has data-correct="0" or "1".
-  - Check => lock drags, highlight correct in green, incorrect in red.
-  - Retry => reset them all to Answers column, unlock.
-*/
+// We define our items in an array: text + which column is correct (0=Natural, 1=Built)
+const items = [
+  // Natural environment (6)
+  { text: "Mountains", correct: 0 },
+  { text: "River", correct: 0 },
+  { text: "Beach", correct: 0 },
+  { text: "Rainforest", correct: 0 },
+  { text: "Desert", correct: 0 },
+  { text: "Coral Reef", correct: 0 },
 
-// Gather references
+  // Built environment (6), including the tricky ones
+  { text: "Highway", correct: 1 },
+  { text: "Bridge", correct: 1 },
+  { text: "House", correct: 1 },
+  { text: "Dam", correct: 1 },
+  { text: "Tree Plantations", correct: 1 },
+  { text: "Botanical Gardens", correct: 1 }
+];
+
+// References to DOM elements
 const dropzones = document.querySelectorAll('.dropzone');
-const draggables = document.querySelectorAll('.draggable');
+const answersCol = document.getElementById('answersCol');
 const checkButton = document.getElementById('checkButton');
 const retryButton = document.getElementById('retryButton');
-const answersCol = document.getElementById('answersCol');
 
-// Set up drag events for draggables
-draggables.forEach(item => {
-  item.addEventListener('dragstart', onDragStart);
-});
+// 1) Shuffle items, 2) create & append them as draggables
+shuffleArray(items);
+createDraggables();
 
-// Set up drop events for each dropzone (and also consider if we want the answers column as a dropzone)
+// We'll attach event listeners for dropzones afterwards
 dropzones.forEach(zone => {
   zone.addEventListener('dragover', onDragOver);
   zone.addEventListener('dragleave', onDragLeave);
   zone.addEventListener('drop', onDrop);
 });
-// If you want to allow moving them back to answers column, treat it as a dropzone too:
+// Also allow dragging back to answersCol
 answersCol.addEventListener('dragover', onDragOver);
 answersCol.addEventListener('dragleave', onDragLeave);
 answersCol.addEventListener('drop', onDrop);
 
+// "Check" logic
+checkButton.addEventListener('click', () => {
+  lockDrags();
+  // Clear old correctness classes
+  const allDrags = document.querySelectorAll('.draggable');
+  allDrags.forEach(d => d.classList.remove('correct', 'incorrect'));
+
+  // For each dropzone, highlight correct/wrong
+  dropzones.forEach(zone => {
+    const colIndex = zone.dataset.col; // "0" or "1"
+    // Check each .draggable in that zone
+    zone.querySelectorAll('.draggable').forEach(item => {
+      if (item.dataset.correct === colIndex) {
+        item.classList.add('correct');
+      } else {
+        item.classList.add('incorrect');
+      }
+    });
+  });
+
+  // Anything left in answersCol is incorrect
+  answersCol.querySelectorAll('.draggable').forEach(item => {
+    item.classList.add('incorrect');
+  });
+});
+
+// "Try Again" logic
+retryButton.addEventListener('click', () => {
+  // Move all .draggable back to answersCol
+  const allDrags = document.querySelectorAll('.draggable');
+  allDrags.forEach(d => {
+    answersCol.appendChild(d);
+    d.classList.remove('correct', 'incorrect');
+    d.setAttribute('draggable', 'true');
+  });
+  // Remove highlight from zones
+  dropzones.forEach(z => z.classList.remove('highlight'));
+  // Shuffle them again (optional: if you want a new random arrangement each retry)
+  shuffleArray(items);
+  // Rebuild the answers column
+  answersCol.innerHTML = "";
+  createDraggables();
+});
+
+// Utility to shuffle the items array in place (Fisher–Yates)
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+}
+
+// Dynamically create .draggable DIVs from our items array
+function createDraggables() {
+  // For each item in the (already shuffled) array, create a div & append to answersCol
+  items.forEach(obj => {
+    // Create the draggable
+    const div = document.createElement('div');
+    div.classList.add('draggable');
+    div.setAttribute('draggable', 'true');
+    div.dataset.correct = String(obj.correct);
+    div.textContent = obj.text;
+
+    // We must attach the dragstart event so it can be moved
+    div.addEventListener('dragstart', onDragStart);
+
+    answersCol.appendChild(div);
+  });
+}
+
+// Basic drag handlers
 function onDragStart(ev) {
-  // store the dragged element's ID
-  ev.dataTransfer.setData('text/plain', ev.target.id);
-  // If it doesn't have an ID, assign one:
+  // If no ID, set a random one
   if (!ev.target.id) {
     ev.target.id = 'drag-' + Math.random().toString(16).slice(2);
   }
+  ev.dataTransfer.setData('text/plain', ev.target.id);
 }
 
 function onDragOver(ev) {
@@ -191,63 +248,22 @@ function onDragLeave(ev) {
 function onDrop(ev) {
   ev.preventDefault();
   ev.currentTarget.classList.remove('highlight');
+  const zone = ev.currentTarget;
 
-  const zone = ev.currentTarget; // the dropzone (or answers column)
   const draggedId = ev.dataTransfer.getData('text/plain');
   const draggedElem = document.getElementById(draggedId);
-
   if (!draggedElem) return;
-  // If it's already in this zone, do nothing
-  if (zone.contains(draggedElem)) return;
 
-  // Append the dragged element to the new zone
+  // If it's already here, do nothing
+  if (zone.contains(draggedElem)) return;
   zone.appendChild(draggedElem);
 }
 
-/* CHECK Button */
-checkButton.addEventListener('click', () => {
-  // Lock all draggables
-  draggables.forEach(d => d.setAttribute('draggable', 'false'));
-
-  // Clear old correctness classes
-  draggables.forEach(d => {
-    d.classList.remove('correct', 'incorrect');
-  });
-
-  // Evaluate each item’s position:
-  dropzones.forEach(zone => {
-    const colIndex = zone.dataset.col; // '0' or '1'
-    // For each item in that zone
-    zone.querySelectorAll('.draggable').forEach(item => {
-      // Check data-correct
-      const correct = item.dataset.correct;
-      if (correct === colIndex) {
-        item.classList.add('correct');
-      } else {
-        item.classList.add('incorrect');
-      }
-    });
-  });
-
-  // Also check if any item is still in answersCol => those are definitely incorrect
-  answersCol.querySelectorAll('.draggable').forEach(item => {
-    // They should have gone to colIndex 0 or 1, so highlight as incorrect
-    item.classList.add('incorrect');
-  });
-});
-
-/* RETRY Button */
-retryButton.addEventListener('click', () => {
-  // Move all items back to answers column
-  draggables.forEach(d => {
-    answersCol.appendChild(d);
-    d.classList.remove('correct', 'incorrect');
-    d.setAttribute('draggable', 'true');
-  });
-
-  // Remove highlight from dropzones
-  dropzones.forEach(z => z.classList.remove('highlight'));
-});
+// Lock all draggables (so after "Check" they can't move items)
+function lockDrags() {
+  const allDrags = document.querySelectorAll('.draggable');
+  allDrags.forEach(d => d.setAttribute('draggable', 'false'));
+}
 </script>
 
 </body>
