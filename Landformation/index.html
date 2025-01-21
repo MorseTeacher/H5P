@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Landforms Table Drag & Drop (Rounded & Orange Theme)</title>
+  <title>Landforms Table Drag & Drop (Fixed Row Height)</title>
   <style>
     body {
       margin: 20px;
@@ -10,7 +10,7 @@
       background-color: #fff;
     }
 
-    /* Layout: table on the left, banks on the right */
+    /* Main container: table on the left, banks on the right */
     #mainContainer {
       display: flex;
       gap: 20px;
@@ -18,33 +18,37 @@
     }
     #tableContainer {
       flex: 0 0 auto;
-      /* Table with rounded corners */
     }
 
-    /* Main Table */
+    /* Table with fixed layout and a set width for columns */
     table {
-      border-collapse: separate; 
+      table-layout: fixed;    /* crucial for fixed row/column sizes */
+      width: 700px;          /* total width to distribute among columns */
+      border-collapse: separate;
       border-spacing: 0;
-      border-radius: 8px;       /* Rounded corners */
-      overflow: hidden;         /* Ensures corners are clipped */
-      min-width: 600px;
-      box-shadow: 0 0 4px rgba(0,0,0,0.2); /* optional slight shadow */
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 0 4px rgba(0,0,0,0.2);
     }
 
-    /* Table Header => dark orange */
+    /* Dark orange header, white text */
     thead tr {
-      background-color: #d97b00; 
+      background-color: #d97b00;
       color: #fff;
     }
     thead th {
       padding: 6px 8px;
       font-size: 0.95em;
-      text-transform: uppercase; /* optional */
+      text-transform: uppercase;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      height: 36px;       /* fixed height in header cells */
     }
 
     /* Alternating row colors */
     tbody tr:nth-child(odd) {
-      background-color: #d97b00; /* dark orange row */
+      background-color: #d97b00; /* dark orange */
       color: #fff;
     }
     tbody tr:nth-child(even) {
@@ -52,26 +56,29 @@
       color: #000;
     }
 
-    /* Table cells */
-    th, td {
-      border: none; /* we rely on the row shading */
+    /* Each cell is a fixed height, with overflow hidden */
+    tbody td {
+      height: 36px;                /* lock row height */
       padding: 4px 6px;
       text-align: center;
-      font-size: 0.9em; 
+      font-size: 0.9em;
       vertical-align: middle;
-      white-space: nowrap; /* single line */
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;     /* so text doesn't push row taller */
     }
 
-    /* Dropzone in each cell (Dominant Process or Agent) */
+    /* The .dropzone is inline, won't force row expansion */
     .dropzone {
-      min-height: 24px; /* minimal height for single line */
-      display: inline-flex;
+      display: inline-flex;   /* keep occupant on one line */
       align-items: center;
       justify-content: center;
-      position: relative;
+      overflow: hidden;
+      width: 100%;    /* fill cell width */
+      height: 100%;   /* fill cell height */
     }
 
-    /* Right: Banks (no border) */
+    /* Draggables in the banks (right side) */
     #banksContainer {
       display: flex;
       flex-direction: column;
@@ -85,7 +92,6 @@
       border-radius: 4px;
     }
 
-    /* Draggables */
     .draggable {
       margin: 4px 0;
       padding: 4px 8px;
@@ -94,7 +100,7 @@
       text-align: center;
       font-size: 0.9em;
       display: inline-block;
-      white-space: nowrap;
+      white-space: nowrap; /* no wrapping => doesn’t push height */
     }
     .draggable:hover {
       opacity: 0.85;
@@ -112,18 +118,18 @@
       color: #fff;
     }
 
-    /* Highlight dropzone on dragover */
+    /* Highlight on dragover */
     .highlight {
       outline: 2px dashed #777;
     }
 
-    /* Correct / incorrect feedback */
+    /* Correct/incorrect feedback */
     .correct {
-      background-color: #c3f7c3 !important; 
+      background-color: #c3f7c3 !important;
       color: #000 !important;
     }
     .incorrect {
-      background-color: #f9c3c3 !important; 
+      background-color: #f9c3c3 !important;
       color: #000 !important;
     }
 
@@ -156,10 +162,10 @@
 <body>
 
 <h1>Landforms: Dominant Process &amp; Agent of Formation</h1>
-<p><em>Drag from the banks (right) into each row’s columns. Rows alternate in dark/pale orange. Headers are dark orange. Table corners are rounded.</em></p>
+<p><em>All table cells have a fixed height. Larger text will be clipped or ellipsized, preventing row resizing.</em></p>
 
 <div id="mainContainer">
-  <!-- LEFT: Table Container -->
+  <!-- LEFT: Table -->
   <div id="tableContainer">
     <table id="landformsTable">
       <thead>
@@ -169,9 +175,7 @@
           <th>Agent of Formation</th>
         </tr>
       </thead>
-      <tbody>
-        <!-- We'll build 12 rows via JS -->
-      </tbody>
+      <tbody></tbody>
     </table>
 
     <button id="checkButton" class="btn">Check</button>
@@ -183,19 +187,15 @@
   <div id="banksContainer">
     <div class="bank" id="processBank">
       <h2>Dominant Processes</h2>
-      <!-- Erosional, Tectonic, Depositional -->
     </div>
     <div class="bank" id="agentBank">
       <h2>Agents of Formation</h2>
-      <!-- Aeolian, Volcanic, Fluvial, Coastal, Glacial, Orogenic -->
     </div>
   </div>
 </div>
 
 <script>
-///////////////////////////////
-// Data
-///////////////////////////////
+// Landform data
 const landformsData = [
   { landform: "Butte",         process: "Erosional",    agent: "Aeolian"   },
   { landform: "Volcano",       process: "Tectonic",     agent: "Volcanic"  },
@@ -210,47 +210,45 @@ const landformsData = [
   { landform: "Island Arch.",  process: "Tectonic",     agent: "Volcanic"  },
   { landform: "Beach",         process: "Depositional", agent: "Coastal"   }
 ];
+
+// Unique sets
 const processes = ["Erosional","Tectonic","Depositional"];
 const agents   = ["Aeolian","Volcanic","Fluvial","Coastal","Glacial","Orogenic"];
 
-///////////////////////////////
-// Build Table Rows
-///////////////////////////////
+// Build table rows
 const tbody = document.querySelector("#landformsTable tbody");
-landformsData.forEach((landObj, i) => {
-  const tr = document.createElement("tr");
-
+landformsData.forEach((obj, i) => {
+  let tr = document.createElement("tr");
+  
   // Landform
-  const tdLand = document.createElement("td");
-  tdLand.textContent = landObj.landform;
-  tr.appendChild(tdLand);
+  let tdL = document.createElement("td");
+  tdL.textContent = obj.landform;
+  tr.appendChild(tdL);
 
-  // Dominant Process
-  const tdProcess = document.createElement("td");
-  tdProcess.classList.add("dropzone");
-  tdProcess.dataset.colType = "process";
-  tdProcess.dataset.rowIndex = i;
-  tr.appendChild(tdProcess);
+  // Process drop
+  let tdP = document.createElement("td");
+  tdP.classList.add("dropzone");
+  tdP.dataset.rowIndex = i;
+  tdP.dataset.colType  = "process";
+  tr.appendChild(tdP);
 
-  // Agent
-  const tdAgent = document.createElement("td");
-  tdAgent.classList.add("dropzone");
-  tdAgent.dataset.colType = "agent";
-  tdAgent.dataset.rowIndex = i;
-  tr.appendChild(tdAgent);
+  // Agent drop
+  let tdA = document.createElement("td");
+  tdA.classList.add("dropzone");
+  tdA.dataset.rowIndex = i;
+  tdA.dataset.colType  = "agent";
+  tr.appendChild(tdA);
 
   tbody.appendChild(tr);
 });
 
-///////////////////////////////
-// Build Bank Items (one each, infinite usage)
-///////////////////////////////
+// Build bank items
 const processBank = document.getElementById("processBank");
 const agentBank   = document.getElementById("agentBank");
 
 processes.forEach(proc => {
   let div = document.createElement("div");
-  div.classList.add("draggable", "process-item");
+  div.classList.add("draggable","process-item");
   div.setAttribute("draggable","true");
   div.textContent = proc;
   div.addEventListener("dragstart", onBankItemDragStart);
@@ -258,51 +256,82 @@ processes.forEach(proc => {
 });
 agents.forEach(a => {
   let div = document.createElement("div");
-  div.classList.add("draggable", "agent-item");
+  div.classList.add("draggable","agent-item");
   div.setAttribute("draggable","true");
   div.textContent = a;
   div.addEventListener("dragstart", onBankItemDragStart);
   agentBank.appendChild(div);
 });
 
-///////////////////////////////
 // Dropzone events
-///////////////////////////////
 document.querySelectorAll(".dropzone").forEach(zone => {
   zone.addEventListener("dragover", onDropzoneDragOver);
   zone.addEventListener("dragleave", onDragLeave);
   zone.addEventListener("drop", onDropzoneDrop);
 });
 
-// Bank -> Cell => infinite cloning
-function onBankItemDragStart(ev) {
-  const text = ev.target.textContent;
-  const isProc = ev.target.classList.contains("process-item");
-  ev.dataTransfer.setData("text/plain", text);
-  ev.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
-  ev.dataTransfer.effectAllowed = "copy";
+// Also accept drags from table cells to the bank
+[processBank, agentBank].forEach(bank => {
+  bank.addEventListener("dragover", e => {
+    e.preventDefault();
+    bank.classList.add("highlight");
+    e.dataTransfer.dropEffect = "move";
+  });
+  bank.addEventListener("dragleave", e => {
+    bank.classList.remove("highlight");
+  });
+  bank.addEventListener("drop", e => {
+    e.preventDefault();
+    bank.classList.remove("highlight");
+    
+    let text = e.dataTransfer.getData("text/plain");
+    let bankType = e.dataTransfer.getData("bank-type");
+
+    let newEl = document.createElement("div");
+    newEl.classList.add("draggable");
+    newEl.setAttribute("draggable","true");
+    if (bankType === "process") newEl.classList.add("process-item");
+    else newEl.classList.add("agent-item");
+    newEl.textContent = text;
+    newEl.addEventListener("dragstart", onBankItemDragStart);
+
+    bank.appendChild(newEl);
+  });
+});
+
+// Buttons
+document.getElementById("checkButton").addEventListener("click", onCheck);
+document.getElementById("retryButton").addEventListener("click", onRestart);
+document.getElementById("copyButton").addEventListener("click", onCopy);
+
+// Bank -> Cell
+function onBankItemDragStart(e) {
+  const text = e.target.textContent;
+  const isProc = e.target.classList.contains("process-item");
+  e.dataTransfer.setData("text/plain", text);
+  e.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
+  e.dataTransfer.effectAllowed = "copy";
 }
 
-function onDropzoneDragOver(ev) {
-  ev.preventDefault();
-  ev.currentTarget.classList.add("highlight");
-  ev.dataTransfer.dropEffect = "copy";
+function onDropzoneDragOver(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add("highlight");
+  e.dataTransfer.dropEffect = "copy";
 }
 
-function onDragLeave(ev) {
-  ev.currentTarget.classList.remove("highlight");
+function onDragLeave(e) {
+  e.currentTarget.classList.remove("highlight");
 }
 
-function onDropzoneDrop(ev) {
-  ev.preventDefault();
-  ev.currentTarget.classList.remove("highlight");
+function onDropzoneDrop(e) {
+  e.preventDefault();
+  e.currentTarget.classList.remove("highlight");
 
-  // If occupant, remove it
-  let occupant = ev.currentTarget.querySelector(".draggable");
+  let occupant = e.currentTarget.querySelector(".draggable");
   if (occupant) occupant.remove();
 
-  const text = ev.dataTransfer.getData("text/plain");
-  const bankType = ev.dataTransfer.getData("bank-type");
+  let text = e.dataTransfer.getData("text/plain");
+  let bankType = e.dataTransfer.getData("bank-type");
 
   let newEl = document.createElement("div");
   newEl.classList.add("draggable");
@@ -312,77 +341,39 @@ function onDropzoneDrop(ev) {
   newEl.textContent = text;
   newEl.addEventListener("dragstart", onCellItemDragStart);
 
-  ev.currentTarget.appendChild(newEl);
+  e.currentTarget.appendChild(newEl);
 }
 
 // Cell -> Another Cell or Cell -> Bank
-function onCellItemDragStart(ev) {
-  const text = ev.target.textContent;
-  const isProc = ev.target.classList.contains("process-item");
-  ev.dataTransfer.setData("text/plain", text);
-  ev.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
-  ev.dataTransfer.effectAllowed = "move";
+function onCellItemDragStart(e) {
+  const text = e.target.textContent;
+  const isProc = e.target.classList.contains("process-item");
+  e.dataTransfer.setData("text/plain", text);
+  e.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
+  e.dataTransfer.effectAllowed = "move";
 }
 
-// Banks can accept items from cells
-[processBank, agentBank].forEach(bank => {
-  bank.addEventListener("dragover", (ev) => {
-    ev.preventDefault();
-    bank.classList.add("highlight");
-    ev.dataTransfer.dropEffect = "move";
-  });
-  bank.addEventListener("dragleave", (ev) => {
-    bank.classList.remove("highlight");
-  });
-  bank.addEventListener("drop", (ev) => {
-    ev.preventDefault();
-    bank.classList.remove("highlight");
-
-    // Occupant is moved from a cell
-    const text = ev.dataTransfer.getData("text/plain");
-    const bankType = ev.dataTransfer.getData("bank-type");
-
-    let newEl = document.createElement("div");
-    newEl.classList.add("draggable");
-    newEl.setAttribute("draggable","true");
-    if (bankType === "process") newEl.classList.add("process-item");
-    else newEl.classList.add("agent-item");
-
-    newEl.textContent = text;
-    // back in bank => infinite usage
-    newEl.addEventListener("dragstart", onBankItemDragStart);
-
-    bank.appendChild(newEl);
-  });
-});
-
-///////////////////////////////
-// Check, Restart, Copy
-///////////////////////////////
-document.getElementById("checkButton").addEventListener("click", onCheck);
-document.getElementById("retryButton").addEventListener("click", onRestart);
-document.getElementById("copyButton").addEventListener("click", onCopy);
-
+// Check
 function onCheck() {
-  // Lock drags
+  // lock drags
   document.querySelectorAll(".draggable").forEach(d => {
     d.setAttribute("draggable","false");
   });
-  // Clear old correctness
+  // clear old correctness
   document.querySelectorAll(".draggable").forEach(d => {
     d.classList.remove("correct","incorrect");
   });
 
   let allCorrect = true;
-  const rows = document.querySelectorAll("#landformsTable tbody tr");
-  rows.forEach((tr, i) => {
-    const correctProc = landformsData[i].process;
-    const correctAgent= landformsData[i].agent;
+  let rows = document.querySelectorAll("#landformsTable tbody tr");
+  rows.forEach((tr,i) => {
+    let correctProc = landformsData[i].process;
+    let correctAgent= landformsData[i].agent;
 
-    const procCell = tr.children[1]; 
-    const agentCell= tr.children[2];
+    let procCell = tr.children[1];
+    let agentCell= tr.children[2];
 
-    const occupantProc = procCell.querySelector(".draggable");
+    let occupantProc = procCell.querySelector(".draggable");
     if (!occupantProc || occupantProc.textContent !== correctProc) {
       if (occupantProc) occupantProc.classList.add("incorrect");
       allCorrect = false;
@@ -390,7 +381,7 @@ function onCheck() {
       occupantProc.classList.add("correct");
     }
 
-    const occupantAgent = agentCell.querySelector(".draggable");
+    let occupantAgent = agentCell.querySelector(".draggable");
     if (!occupantAgent || occupantAgent.textContent !== correctAgent) {
       if (occupantAgent) occupantAgent.classList.add("incorrect");
       allCorrect = false;
@@ -406,26 +397,27 @@ function onCheck() {
   }
 }
 
+// Restart
 function onRestart() {
-  // Remove occupant clones from table cells
+  // remove occupant clones from table
   document.querySelectorAll(".dropzone .draggable").forEach(d => d.remove());
 
-  // Re-enable the bank items
+  // re-enable banks
   document.querySelectorAll(".draggable").forEach(d => {
     d.classList.remove("correct","incorrect");
     d.setAttribute("draggable","true");
   });
-  // Hide copy
   document.getElementById("copyButton").style.display = "none";
 }
 
+// Copy
 async function onCopy() {
   let text = "Landform\tDominant Process\tAgent\n";
-  const rows = document.querySelectorAll("#landformsTable tbody tr");
-  rows.forEach((tr, i) => {
-    const land = landformsData[i].landform;
-    const proc = tr.children[1].querySelector(".draggable")?.textContent || "";
-    const agent= tr.children[2].querySelector(".draggable")?.textContent || "";
+  let rows = document.querySelectorAll("#landformsTable tbody tr");
+  rows.forEach((tr,i) => {
+    let land  = landformsData[i].landform;
+    let proc  = tr.children[1].querySelector(".draggable")?.textContent || "";
+    let agent = tr.children[2].querySelector(".draggable")?.textContent || "";
     text += `${land}\t${proc}\t${agent}\n`;
   });
   try {
@@ -436,6 +428,5 @@ async function onCopy() {
   }
 }
 </script>
-
 </body>
 </html>
