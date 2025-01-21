@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Landforms Table Drag & Drop</title>
+  <title>Landforms Drag & Drop (Alternating Rows, Full Width)</title>
   <style>
     body {
       margin: 20px;
@@ -10,7 +10,7 @@
       background-color: #fff;
     }
 
-    /* Main layout: table on the left, banks on the right */
+    /* Main container: table on the left, banks on the right */
     #mainContainer {
       display: flex;
       gap: 20px;
@@ -20,10 +20,11 @@
       flex: 0 0 auto;
     }
 
-    /* Fixed table layout to lock cell sizes */
+    /* Table Layout */
     table {
-      table-layout: fixed;    /* fixes cell sizes */
-      width: 700px;          /* total width for 3 columns */
+      /* fix cell widths so we don't expand if occupant is wide */
+      table-layout: fixed;
+      width: 800px;  
       border-collapse: separate;
       border-spacing: 0;
       border-radius: 8px;
@@ -31,25 +32,20 @@
       box-shadow: 0 0 4px rgba(0,0,0,0.2);
     }
 
-    /* HEADER => dark orange with white text */
+    /* Dark orange header with white text */
     thead tr {
-      background-color: #d97b00;
+      background-color: #d97b00; 
       color: #fff;
     }
     thead th {
       height: 36px;
       padding: 6px 8px;
       font-size: 0.9em;
-      text-transform: uppercase;
       white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
     }
 
-    /* Alternate row colors in TBody: 
-       - odd = light (#fce0b8),
-       - even = dark (#d97b00 with white text).
-       This creates a "dark, light, dark, light" pattern if you count the header as row 0. 
+    /* Alternate the row color across the entire row:
+       row 1 => light, row 2 => dark, row 3 => light, row 4 => dark, etc.
     */
     tbody tr:nth-child(odd) {
       background-color: #fce0b8; /* pale orange */
@@ -60,37 +56,37 @@
       color: #fff;
     }
 
-    /* Table cells */
+    /* Cells (Landform, Process, Agent) with fixed height */
     th, td {
-      border: none; 
+      border: none;
       text-align: center;
-      font-size: 0.9em;
       vertical-align: middle;
+      height: 36px;
+      padding: 4px 6px;
       white-space: nowrap;
-      height: 36px;         /* fixed row height */
       overflow: hidden;
       text-overflow: ellipsis;
-      padding: 4px 6px;
+      font-size: 0.9em;
     }
 
-    /* The dropzone spans the entire cell, so the row color is visible behind it. */
+    /* Each cell for Process/Agent is a .dropzone filling its entire cell area */
     .dropzone {
       width: 100%;
       height: 100%;
       display: flex;
       align-items: center;
       justify-content: center;
-      overflow: hidden; /* so text doesn't push cell taller */
+      overflow: hidden;
     }
 
-    /* Banks on the right (no border) */
+    /* The banks on the right with no border */
     #banksContainer {
       display: flex;
       flex-direction: column;
       gap: 16px;
     }
     .bank h2 {
-      margin: 0 0 4px 0;
+      margin: 0 0 4px;
       font-size: 1em;
       background: #eee;
       padding: 4px 6px;
@@ -106,7 +102,7 @@
       text-align: center;
       font-size: 0.9em;
       display: inline-block;
-      white-space: nowrap; 
+      white-space: nowrap;
     }
     .draggable:hover {
       opacity: 0.85;
@@ -124,12 +120,12 @@
       color: #fff;
     }
 
-    /* Highlight on dragover */
+    /* When a dropzone is hovered for dropping */
     .highlight {
       outline: 2px dashed #777;
     }
 
-    /* Correct/incorrect feedback */
+    /* Correct/incorrect feedback on occupant */
     .correct {
       background-color: #c3f7c3 !important;
       color: #000 !important;
@@ -161,7 +157,7 @@
       background-color: #28a745;
       color: #fff;
       margin-left: 8px;
-      display: none;
+      display: none; /* show if all correct */
     }
   </style>
 </head>
@@ -170,26 +166,25 @@
 <h1>Landforms: Dominant Process &amp; Agent of Formation</h1>
 <p>
   <em>
-    Rows alternate dark/light.  
-    The entire row (including drop cells) shares that color.  
-    Both columns accept drops.  
-    Row heights are fixed (36px).
+    Rows alternate light/dark orange across all columns.<br/>
+    Each cell can only hold one item (dropping a new one replaces the old).<br/>
+    The “Agent” column definitely accepts drops.
   </em>
 </p>
 
 <div id="mainContainer">
-  <!-- LEFT: Table -->
+  <!-- LEFT: Table Container -->
   <div id="tableContainer">
     <table id="landformsTable">
       <thead>
         <tr>
-          <th>Landform</th>
-          <th>Dominant Process</th>
-          <th>Agent of Formation</th>
+          <th>LANDFORM</th>
+          <th>DOMINANT PROCESS</th>
+          <th>AGENT OF FORMATION</th>
         </tr>
       </thead>
       <tbody>
-        <!-- Built dynamically -->
+        <!-- We'll build 12 rows via JS -->
       </tbody>
     </table>
 
@@ -198,7 +193,7 @@
     <button id="copyButton" class="btn">Copy</button>
   </div>
 
-  <!-- RIGHT: Banks (infinite usage) -->
+  <!-- RIGHT: Banks -->
   <div id="banksContainer">
     <div class="bank" id="processBank">
       <h2>Dominant Processes</h2>
@@ -212,7 +207,7 @@
 </div>
 
 <script>
-// Data
+// ---------------- Data ----------------
 const landformsData = [
   { landform: "Butte",         process: "Erosional",    agent: "Aeolian"   },
   { landform: "Volcano",       process: "Tectonic",     agent: "Volcanic"  },
@@ -230,25 +225,25 @@ const landformsData = [
 const processes = ["Erosional","Tectonic","Depositional"];
 const agents   = ["Aeolian","Volcanic","Fluvial","Coastal","Glacial","Orogenic"];
 
-// Build table rows
+// ---------------- Build Table Rows ----------------
 const tbody = document.querySelector("#landformsTable tbody");
 landformsData.forEach((obj, i) => {
-  let tr = document.createElement("tr");
+  const tr = document.createElement("tr");
 
-  // Landform cell
-  let tdLand = document.createElement("td");
+  // Landform cell (read-only)
+  const tdLand = document.createElement("td");
   tdLand.textContent = obj.landform;
   tr.appendChild(tdLand);
 
-  // Dominant Process cell
-  let tdProc = document.createElement("td");
-  tdProc.classList.add("dropzone");
-  tdProc.dataset.rowIndex = i;
-  tdProc.dataset.colType  = "process";
-  tr.appendChild(tdProc);
+  // Dominant Process cell (dropzone)
+  const tdProcess = document.createElement("td");
+  tdProcess.classList.add("dropzone");
+  tdProcess.dataset.rowIndex = i;
+  tdProcess.dataset.colType  = "process";
+  tr.appendChild(tdProcess);
 
-  // Agent of Formation cell
-  let tdAgent = document.createElement("td");
+  // Agent cell (dropzone)
+  const tdAgent = document.createElement("td");
   tdAgent.classList.add("dropzone");
   tdAgent.dataset.rowIndex = i;
   tdAgent.dataset.colType  = "agent";
@@ -257,12 +252,12 @@ landformsData.forEach((obj, i) => {
   tbody.appendChild(tr);
 });
 
-// Build the bank items (one each, infinite usage)
+// ---------------- Build Bank Items (one each) ----------------
 const processBank = document.getElementById("processBank");
 const agentBank   = document.getElementById("agentBank");
 
 processes.forEach(proc => {
-  let div = document.createElement("div");
+  const div = document.createElement("div");
   div.classList.add("draggable","process-item");
   div.setAttribute("draggable","true");
   div.textContent = proc;
@@ -270,7 +265,7 @@ processes.forEach(proc => {
   processBank.appendChild(div);
 });
 agents.forEach(a => {
-  let div = document.createElement("div");
+  const div = document.createElement("div");
   div.classList.add("draggable","agent-item");
   div.setAttribute("draggable","true");
   div.textContent = a;
@@ -278,31 +273,31 @@ agents.forEach(a => {
   agentBank.appendChild(div);
 });
 
-// Dropzone events (both columns)
+// ---------------- Dropzones: both columns accept drops ----------------
 document.querySelectorAll(".dropzone").forEach(zone => {
   zone.addEventListener("dragover", onDropzoneDragOver);
   zone.addEventListener("dragleave", onDragLeave);
   zone.addEventListener("drop", onDropzoneDrop);
 });
 
-// Also allow dragging from a cell back to the bank
+// Also allow dragging from a cell to the bank
 [processBank, agentBank].forEach(bank => {
-  bank.addEventListener("dragover", e => {
-    e.preventDefault();
+  bank.addEventListener("dragover", (ev) => {
+    ev.preventDefault();
     bank.classList.add("highlight");
-    e.dataTransfer.dropEffect = "move";
+    ev.dataTransfer.dropEffect = "move";
   });
-  bank.addEventListener("dragleave", e => {
+  bank.addEventListener("dragleave", (ev) => {
     bank.classList.remove("highlight");
   });
-  bank.addEventListener("drop", e => {
-    e.preventDefault();
+  bank.addEventListener("drop", (ev) => {
+    ev.preventDefault();
     bank.classList.remove("highlight");
 
-    let text = e.dataTransfer.getData("text/plain");
-    let bankType = e.dataTransfer.getData("bank-type");
+    const text = ev.dataTransfer.getData("text/plain");
+    const bankType = ev.dataTransfer.getData("bank-type");
 
-    let newEl = document.createElement("div");
+    const newEl = document.createElement("div");
     newEl.classList.add("draggable");
     newEl.setAttribute("draggable","true");
     if (bankType === "process") newEl.classList.add("process-item");
@@ -314,67 +309,69 @@ document.querySelectorAll(".dropzone").forEach(zone => {
   });
 });
 
-// Buttons
+// ---------------- Buttons ----------------
 document.getElementById("checkButton").addEventListener("click", onCheck);
 document.getElementById("retryButton").addEventListener("click", onRestart);
 document.getElementById("copyButton").addEventListener("click", onCopy);
 
-// -------------- Drag Functions --------------
-
-// Bank -> Cell
-function onBankItemDragStart(e) {
-  const text = e.target.textContent;
-  const isProc = e.target.classList.contains("process-item");
-  e.dataTransfer.setData("text/plain", text);
-  e.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
-  e.dataTransfer.effectAllowed = "copy";
+// ---------------- Drag from Bank => Clone Approach ----------------
+function onBankItemDragStart(ev) {
+  const text = ev.target.textContent;
+  const isProc = ev.target.classList.contains("process-item");
+  ev.dataTransfer.setData("text/plain", text);
+  ev.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
+  ev.dataTransfer.effectAllowed = "copy";
 }
 
-function onDropzoneDragOver(e) {
-  e.preventDefault();
-  e.currentTarget.classList.add("highlight");
-  e.dataTransfer.dropEffect = "copy";
+// ---------------- Dropzone (Process/Agent cells) ----------------
+function onDropzoneDragOver(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.add("highlight");
+  ev.dataTransfer.dropEffect = "copy";
 }
 
-function onDragLeave(e) {
-  e.currentTarget.classList.remove("highlight");
+function onDragLeave(ev) {
+  ev.currentTarget.classList.remove("highlight");
 }
 
-function onDropzoneDrop(e) {
-  e.preventDefault();
-  e.currentTarget.classList.remove("highlight");
+function onDropzoneDrop(ev) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove("highlight");
 
-  // If occupant is present, remove it
-  let occupant = e.currentTarget.querySelector(".draggable");
+  // If there's already occupant, remove it => only 1 occupant per cell
+  const occupant = ev.currentTarget.querySelector(".draggable");
   if (occupant) occupant.remove();
 
-  const text = e.dataTransfer.getData("text/plain");
-  const bankType = e.dataTransfer.getData("bank-type");
+  // Create a new occupant from the data
+  const text = ev.dataTransfer.getData("text/plain");
+  const bankType = ev.dataTransfer.getData("bank-type");
 
-  let newEl = document.createElement("div");
+  const newEl = document.createElement("div");
   newEl.classList.add("draggable");
   newEl.setAttribute("draggable","true");
-  if (bankType === "process") newEl.classList.add("process-item");
-  else newEl.classList.add("agent-item");
-
+  if (bankType === "process") {
+    newEl.classList.add("process-item");
+  } else {
+    newEl.classList.add("agent-item");
+  }
   newEl.textContent = text;
   newEl.addEventListener("dragstart", onCellItemDragStart);
 
-  e.currentTarget.appendChild(newEl);
+  ev.currentTarget.appendChild(newEl);
 }
 
-// Cell -> Another Cell or Cell -> Bank
-function onCellItemDragStart(e) {
-  const text = e.target.textContent;
-  const isProc = e.target.classList.contains("process-item");
-  e.dataTransfer.setData("text/plain", text);
-  e.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
-  e.dataTransfer.effectAllowed = "move";
+// ---------------- Cell -> Another Cell or Cell -> Bank ----------------
+function onCellItemDragStart(ev) {
+  const text = ev.target.textContent;
+  const isProc = ev.target.classList.contains("process-item");
+  ev.dataTransfer.setData("text/plain", text);
+  ev.dataTransfer.setData("bank-type", isProc ? "process" : "agent");
+  ev.dataTransfer.effectAllowed = "move";
 }
 
-// -------------- Check / Restart / Copy --------------
+// ---------------- Check Logic ----------------
 function onCheck() {
-  // Lock drags
+  // Lock all draggables
   document.querySelectorAll(".draggable").forEach(d => {
     d.setAttribute("draggable","false");
   });
@@ -386,26 +383,26 @@ function onCheck() {
   let allCorrect = true;
   const rows = document.querySelectorAll("#landformsTable tbody tr");
   rows.forEach((tr, i) => {
-    const correctProc = landformsData[i].process;
-    const correctAgent= landformsData[i].agent;
+    const correctP = landformsData[i].process;
+    const correctA = landformsData[i].agent;
 
     const procCell = tr.children[1];
     const agentCell= tr.children[2];
 
-    let occupantProc = procCell.querySelector(".draggable");
-    if (!occupantProc || occupantProc.textContent !== correctProc) {
-      if (occupantProc) occupantProc.classList.add("incorrect");
+    const occupantP = procCell.querySelector(".draggable");
+    if (!occupantP || occupantP.textContent !== correctP) {
+      if (occupantP) occupantP.classList.add("incorrect");
       allCorrect = false;
     } else {
-      occupantProc.classList.add("correct");
+      occupantP.classList.add("correct");
     }
 
-    let occupantAgent = agentCell.querySelector(".draggable");
-    if (!occupantAgent || occupantAgent.textContent !== correctAgent) {
-      if (occupantAgent) occupantAgent.classList.add("incorrect");
+    const occupantA = agentCell.querySelector(".draggable");
+    if (!occupantA || occupantA.textContent !== correctA) {
+      if (occupantA) occupantA.classList.add("incorrect");
       allCorrect = false;
     } else {
-      occupantAgent.classList.add("correct");
+      occupantA.classList.add("correct");
     }
   });
 
@@ -416,11 +413,11 @@ function onCheck() {
   }
 }
 
+// ---------------- Restart ----------------
 function onRestart() {
-  // Remove occupant clones from the table
+  // Remove occupant clones from table cells
   document.querySelectorAll(".dropzone .draggable").forEach(d => d.remove());
-
-  // Re-enable dragging in the banks
+  // Re-enable drag in banks
   document.querySelectorAll(".draggable").forEach(d => {
     d.classList.remove("correct","incorrect");
     d.setAttribute("draggable","true");
@@ -428,6 +425,7 @@ function onRestart() {
   document.getElementById("copyButton").style.display = "none";
 }
 
+// ---------------- Copy ----------------
 async function onCopy() {
   let text = "Landform\tDominant Process\tAgent\n";
   const rows = document.querySelectorAll("#landformsTable tbody tr");
