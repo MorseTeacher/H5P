@@ -172,7 +172,7 @@
 </div>
 
 <script>
-// We define each row with: landform, correctProcess, correctAgent
+// Rows data
 const rowsData = [
   { landform: "Butte",         process: "Erosional",    agent: "Aeolian"   },
   { landform: "Volcano",       process: "Tectonic",     agent: "Volcanic"  },
@@ -224,6 +224,7 @@ rowsData.forEach((row, idx) => {
   // process item
   const divP = document.createElement("div");
   divP.classList.add("draggable", "process-item");
+  divP.setAttribute("draggable", "true");  // <-- Make sure it's actually draggable
   divP.dataset.correct = `${idx}-P`;
   divP.textContent = row.process;
   processItems.push(divP);
@@ -231,6 +232,7 @@ rowsData.forEach((row, idx) => {
   // agent item
   const divA = document.createElement("div");
   divA.classList.add("draggable", "agent-item");
+  divA.setAttribute("draggable", "true");  // <-- Also draggable
   divA.dataset.correct = `${idx}-A`;
   divA.textContent = row.agent;
   agentItems.push(divA);
@@ -275,6 +277,7 @@ function onDragStart(ev) {
     ev.target.id = "drag-" + Math.random().toString(16).slice(2);
   }
   ev.dataTransfer.setData("text/plain", ev.target.id);
+  // Optional: ev.dataTransfer.effectAllowed = "move";
 }
 
 function onDragOver(ev) {
