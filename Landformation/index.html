@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Landforms Table Drag & Drop</title>
+  <title>Landforms Table Drag & Drop (Compact Rows)</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -18,9 +18,10 @@
       max-width: 900px;
     }
     th, td {
-      border: 2px solid #d97b00;
-      padding: 8px;
+      border: 1px solid #d97b00; /* thinner border */
+      padding: 4px;              /* reduced padding */
       text-align: center;
+      font-size: 0.9em;          /* optional smaller font */
     }
     th {
       background-color: #f4831b; 
@@ -33,20 +34,19 @@
 
     /* Drop zones in table cells */
     .dropzone {
-      min-height: 40px; 
+      min-height: 24px; /* smaller minimum height */
       display: flex;
       align-items: center;
       justify-content: center;
+      border-radius: 4px;
     }
     /* White w/ orange border (Dominant Process cells) */
     .process-drop {
-      border: 2px dashed #d97b00; 
-      border-radius: 8px;
+      border: 1px dashed #d97b00; 
     }
     /* Orange w/ white border (Agent of Formation cells) */
     .agent-drop {
-      border: 2px dashed #fff; 
-      border-radius: 8px;
+      border: 1px dashed #fff; 
     }
 
     /* Banks of draggable items */
@@ -66,35 +66,33 @@
       padding: 6px 10px;
       border-radius: 4px;
       margin-top: 0;
+      font-size: 1em; /* smaller heading if you like */
     }
 
     /* Draggables */
     .draggable {
-      margin: 6px 0;
-      padding: 6px 10px;
+      margin: 4px 0;         /* smaller margin */
+      padding: 4px 8px;      /* smaller padding */
       display: inline-block;
       cursor: move;
       text-align: center;
-      border-radius: 8px;
+      border-radius: 6px;
+      font-size: 0.9em;
     }
-    /* White with orange border (dominant process) */
     .process-item {
       background-color: #fff;
       border: 2px solid #d97b00;
     }
-    /* Orange background with white border (agent) */
     .agent-item {
       background-color: #f4831b;
       border: 2px solid #fff;
       color: #fff;
     }
-
-    /* Hover highlights */
     .draggable:hover {
       opacity: 0.85;
     }
 
-    /* Drag-over highlight on dropzone */
+    /* Highlight dropzone on dragover */
     .highlight {
       outline: 2px dashed #777;
     }
@@ -112,9 +110,9 @@
     /* Buttons */
     .btn {
       margin-top: 20px;
-      padding: 10px 20px;
+      padding: 8px 16px;
       font-size: 14px;
-      border-radius: 25px;
+      border-radius: 20px;
       border: none;
       cursor: pointer;
     }
@@ -151,9 +149,9 @@
   </thead>
   <tbody>
     <!-- We'll generate 12 rows. Each row has:
-         1) Landform name (unmovable text)
-         2) process-drop cell (data-drop="rowIndex-P")
-         3) agent-drop cell (data-drop="rowIndex-A")
+         1) Landform name
+         2) .dropzone.process-drop (data-drop="rowIndex-P")
+         3) .dropzone.agent-drop   (data-drop="rowIndex-A")
     -->
   </tbody>
 </table>
@@ -167,11 +165,9 @@
 <div id="banksContainer">
   <div class="bank" id="processBank">
     <h2>Dominant Processes</h2>
-    <!-- We'll insert .draggable.process-item here via JS -->
   </div>
   <div class="bank" id="agentBank">
     <h2>Agents of Formation</h2>
-    <!-- We'll insert .draggable.agent-item here via JS -->
   </div>
 </div>
 
@@ -192,7 +188,7 @@ const rowsData = [
   { landform: "Beach",         process: "Depositional", agent: "Coastal"   }
 ];
 
-// We'll build the table rows dynamically
+// Build the table rows
 const tableBody = document.querySelector("#landformsTable tbody");
 rowsData.forEach((rowObj, idx) => {
   const tr = document.createElement("tr");
@@ -202,24 +198,22 @@ rowsData.forEach((rowObj, idx) => {
   tdLand.textContent = rowObj.landform;
   tr.appendChild(tdLand);
 
-  // 2) Process cell (dropzone)
+  // 2) Process cell
   const tdProc = document.createElement("td");
   tdProc.classList.add("dropzone", "process-drop");
-  // data-drop to identify which row & column
-  tdProc.dataset.drop = `${idx}-P`; // e.g. "0-P", "1-P", etc.
+  tdProc.dataset.drop = `${idx}-P`;
   tr.appendChild(tdProc);
 
-  // 3) Agent cell (dropzone)
+  // 3) Agent cell
   const tdAgent = document.createElement("td");
   tdAgent.classList.add("dropzone", "agent-drop");
-  tdAgent.dataset.drop = `${idx}-A`; // e.g. "0-A", "1-A", etc.
+  tdAgent.dataset.drop = `${idx}-A`;
   tr.appendChild(tdAgent);
 
   tableBody.appendChild(tr);
 });
 
-// We'll create 12 "Dominant Process" draggables (matching each row) in random order
-// and 12 "Agent of Formation" draggables in random order.
+// Create “Dominant Process” items and “Agent of Formation” items in random order
 const processBank = document.getElementById("processBank");
 const agentBank   = document.getElementById("agentBank");
 
@@ -227,15 +221,14 @@ let processItems = [];
 let agentItems   = [];
 
 rowsData.forEach((row, idx) => {
-  // create a draggable for the "process"
+  // process item
   const divP = document.createElement("div");
   divP.classList.add("draggable", "process-item");
-  // data-correct for which cell it belongs in
   divP.dataset.correct = `${idx}-P`;
   divP.textContent = row.process;
   processItems.push(divP);
 
-  // create a draggable for the "agent"
+  // agent item
   const divA = document.createElement("div");
   divA.classList.add("draggable", "agent-item");
   divA.dataset.correct = `${idx}-A`;
@@ -243,11 +236,8 @@ rowsData.forEach((row, idx) => {
   agentItems.push(divA);
 });
 
-// Shuffle them
 shuffle(processItems);
 shuffle(agentItems);
-
-// Append to respective banks
 processItems.forEach(item => processBank.appendChild(item));
 agentItems.forEach(item => agentBank.appendChild(item));
 
@@ -262,23 +252,20 @@ document.querySelectorAll(".dropzone").forEach(zone => {
   zone.addEventListener("dragleave", onDragLeave);
   zone.addEventListener("drop", onDrop);
 });
-
-// Also make the banks themselves dropzones so items can be dragged back
+// Also the banks themselves
 [processBank, agentBank].forEach(bank => {
   bank.addEventListener("dragover", onDragOver);
   bank.addEventListener("dragleave", onDragLeave);
   bank.addEventListener("drop", onDrop);
 });
 
-// Check button
+// Buttons
 const checkBtn = document.getElementById("checkButton");
 checkBtn.addEventListener("click", onCheck);
 
-// Retry (Restart) button
 const retryBtn = document.getElementById("retryButton");
 retryBtn.addEventListener("click", onRetry);
 
-// Copy button (hidden until all correct)
 const copyBtn = document.getElementById("copyButton");
 copyBtn.addEventListener("click", copyTableToClipboard);
 
@@ -307,10 +294,9 @@ function onDrop(ev) {
   const draggedEl = document.getElementById(draggedId);
   if (!draggedEl) return;
 
-  // If it's already in this container, do nothing
+  // If it's already here, do nothing
   if (ev.currentTarget.contains(draggedEl)) return;
 
-  // Append the dragged element to the new container
   ev.currentTarget.appendChild(draggedEl);
 }
 
@@ -320,21 +306,18 @@ function onCheck() {
   const allDrags = document.querySelectorAll(".draggable");
   allDrags.forEach(d => d.setAttribute("draggable", "false"));
 
-  // Clear old correctness classes
+  // Clear old correctness
   allDrags.forEach(d => d.classList.remove("correct", "incorrect"));
 
-  // We'll track if everything is correct
   let allCorrect = true;
 
-  // For each cell, see if it has exactly one child .draggable with matching data-correct
+  // For each dropzone
   document.querySelectorAll(".dropzone").forEach(zone => {
     const occupant = zone.querySelector(".draggable");
     if (!occupant) {
-      // No occupant => automatically incorrect
       allCorrect = false;
       return;
     }
-    // Compare occupant.dataset.correct to zone.dataset.drop
     if (occupant.dataset.correct === zone.dataset.drop) {
       occupant.classList.add("correct");
     } else {
@@ -343,7 +326,7 @@ function onCheck() {
     }
   });
 
-  // If everything is correct, show the Copy button
+  // If all correct, show copy button
   if (allCorrect) {
     copyBtn.style.display = "inline-block";
   } else {
@@ -357,7 +340,6 @@ function onRetry() {
   allDrags.forEach(d => {
     d.classList.remove("correct", "incorrect");
     d.setAttribute("draggable", "true");
-    // Move them back to their respective banks
     if (d.classList.contains("process-item")) {
       processBank.appendChild(d);
     } else {
@@ -369,17 +351,13 @@ function onRetry() {
 
 /* --- Copy Completed Table to Clipboard --- */
 async function copyTableToClipboard() {
-  // Build a text representation
   let text = "LANDFORM\tDOMINANT PROCESS\tAGENT OF FORMATION\n";
   document.querySelectorAll("#landformsTable tbody tr").forEach((tr, idx) => {
-    const landform = rowsData[idx].landform; // from our array
-    // Middle cell occupant
+    const landform = rowsData[idx].landform;
     const tdProcess = tr.children[1];
     const occupantP = tdProcess.querySelector(".draggable")?.textContent || "";
-    // Right cell occupant
     const tdAgent = tr.children[2];
     const occupantA = tdAgent.querySelector(".draggable")?.textContent || "";
-
     text += `${landform}\t${occupantP}\t${occupantA}\n`;
   });
 
@@ -392,7 +370,7 @@ async function copyTableToClipboard() {
   }
 }
 
-/* --- Utility: Shuffle an array in place (Fisher-Yates) --- */
+/* --- Utility: Shuffle (Fisher-Yates) --- */
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
