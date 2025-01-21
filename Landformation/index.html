@@ -13,52 +13,44 @@
     /* Main layout: table on the left, banks on the right */
     #mainContainer {
       display: flex;
-      gap: 20px; /* space between table and banks */
-      align-items: flex-start; /* align top */
+      gap: 20px;
+      align-items: flex-start;
     }
-
-    /* Landforms Table Container */
     #tableContainer {
-      flex: 0 0 auto; /* fixed width for the table, no border */
+      flex: 0 0 auto;
     }
-
-    /* The main table for Landform / Process / Agent */
     table {
       border-collapse: collapse;
       min-width: 600px;
     }
     th, td {
       border: 1px solid #aaa;
-      padding: 4px 6px;  /* minimal padding for single-line height */
+      padding: 4px 6px;  
       text-align: center;
-      font-size: 0.9em;  /* slightly smaller text if you wish */
+      font-size: 0.9em; 
       vertical-align: middle;
     }
     th {
       background-color: #f0f0f0;
     }
-    /* Slight alternating row shade (optional) */
+    /* Minimal row height */
     tbody tr:nth-child(even) td {
       background-color: #f9f9f9;
     }
 
-    /* Drop columns (Process / Agent) => minimal height */
     .dropzone {
       min-height: 24px; 
       display: flex;
       align-items: center;
       justify-content: center;
-      position: relative; /* so we can place occupant in the middle */
+      position: relative;
     }
 
-    /* The "Banks" container on the right (no borders) */
+    /* Banks on the right (no border) */
     #banksContainer {
       display: flex;
       flex-direction: column;
-      gap: 16px; /* space between the two banks */
-    }
-    .bank {
-      /* no border, no background => appears freestanding */
+      gap: 16px;
     }
     .bank h2 {
       margin: 0 0 4px 0;
@@ -68,7 +60,7 @@
       border-radius: 4px;
     }
 
-    /* Draggable items in the banks */
+    /* Draggables */
     .draggable {
       margin: 4px 0;
       padding: 4px 8px;
@@ -78,6 +70,10 @@
       font-size: 0.9em;
       display: inline-block;
     }
+    .draggable:hover {
+      opacity: 0.85;
+    }
+
     /* Dominant Processes = white w/ orange border */
     .process-item {
       background-color: #fff;
@@ -91,23 +87,18 @@
       color: #fff;
     }
 
-    /* On hover */
-    .draggable:hover {
-      opacity: 0.85;
-    }
-
-    /* Highlight dropzone on dragover */
+    /* Highlight on dragover */
     .highlight {
       outline: 2px dashed #777;
     }
 
-    /* Correct / Incorrect feedback */
+    /* Correct / incorrect feedback */
     .correct {
-      background-color: #c3f7c3 !important; /* green */
+      background-color: #c3f7c3 !important;
       color: #000 !important;
     }
     .incorrect {
-      background-color: #f9c3c3 !important; /* red */
+      background-color: #f9c3c3 !important;
       color: #000 !important;
     }
 
@@ -133,14 +124,14 @@
       background-color: #28a745;
       color: #fff;
       margin-left: 8px;
-      display: none; /* only visible when all correct */
+      display: none;
     }
   </style>
 </head>
 <body>
 
 <h1>Landforms: Dominant Process &amp; Agent of Formation</h1>
-<p><em>Drag items from the banks on the right into each row’s “Dominant Process” and “Agent” cells. You can drag the same item multiple times. Then click “Check.”</em></p>
+<p><em>Drag items from the banks (right) into each row’s columns. Each item is infinitely usable (the bank item stays). Then click “Check.”</em></p>
 
 <div id="mainContainer">
   <!-- LEFT: Table Container -->
@@ -154,32 +145,32 @@
         </tr>
       </thead>
       <tbody>
-        <!-- We'll build 12 rows via JS -->
+        <!-- We'll build rows via JS -->
       </tbody>
     </table>
 
-    <!-- Buttons below the table -->
     <button id="checkButton" class="btn">Check</button>
     <button id="retryButton" class="btn">Restart</button>
     <button id="copyButton" class="btn">Copy</button>
   </div>
 
-  <!-- RIGHT: Banks Container (no border) -->
+  <!-- RIGHT: Banks -->
   <div id="banksContainer">
     <div class="bank" id="processBank">
       <h2>Dominant Processes</h2>
-      <!-- e.g. Erosional, Tectonic, Depositional -->
+      <!-- Erosional, Tectonic, Depositional (infinitely clonable) -->
     </div>
     <div class="bank" id="agentBank">
       <h2>Agents of Formation</h2>
-      <!-- e.g. Aeolian, Volcanic, Fluvial, Coastal, Glacial, Orogenic -->
+      <!-- Aeolian, Volcanic, Fluvial, Coastal, Glacial, Orogenic -->
     </div>
   </div>
 </div>
 
 <script>
-// ----- Data Setup -----
-// We'll store 12 landforms, each with the correct "process" and "agent" string.
+///////////////////////////////
+// Data
+///////////////////////////////
 const landformsData = [
   { landform: "Butte",         process: "Erosional",    agent: "Aeolian"   },
   { landform: "Volcano",       process: "Tectonic",     agent: "Volcanic"  },
@@ -194,102 +185,86 @@ const landformsData = [
   { landform: "Island Arch.",  process: "Tectonic",     agent: "Volcanic"  },
   { landform: "Beach",         process: "Depositional", agent: "Coastal"   }
 ];
-
-// Unique sets for Dominant Processes and Agents
 const processes = ["Erosional","Tectonic","Depositional"];
 const agents   = ["Aeolian","Volcanic","Fluvial","Coastal","Glacial","Orogenic"];
 
-// ----- Build the Table -----
+///////////////////////////////
+// Build Table Rows
+///////////////////////////////
 const tbody = document.querySelector("#landformsTable tbody");
-landformsData.forEach((item, rowIndex) => {
+landformsData.forEach((landObj, i) => {
   const tr = document.createElement("tr");
 
-  // Landform (read-only)
+  // Landform
   const tdLand = document.createElement("td");
-  tdLand.textContent = item.landform;
+  tdLand.textContent = landObj.landform;
   tr.appendChild(tdLand);
 
-  // Dominant Process cell
+  // Dominant Process
   const tdProcess = document.createElement("td");
   tdProcess.classList.add("dropzone");
-  tdProcess.dataset.colType = "process";   // helps us know which check to run
-  tdProcess.dataset.rowIndex = rowIndex;   // which landform row
+  tdProcess.dataset.colType = "process";
+  tdProcess.dataset.rowIndex = i;
   tr.appendChild(tdProcess);
 
-  // Agent of Formation cell
+  // Agent
   const tdAgent = document.createElement("td");
   tdAgent.classList.add("dropzone");
   tdAgent.dataset.colType = "agent";
-  tdAgent.dataset.rowIndex = rowIndex;
+  tdAgent.dataset.rowIndex = i;
   tr.appendChild(tdAgent);
 
   tbody.appendChild(tr);
 });
 
-// ----- Build the "Banks" (one copy each, but infinitely clonable) -----
+///////////////////////////////
+// Build Bank Items (one each)
+///////////////////////////////
 const processBank = document.getElementById("processBank");
 const agentBank   = document.getElementById("agentBank");
 
-// Create a single "draggable" for each process
 processes.forEach(proc => {
-  const div = document.createElement("div");
-  div.classList.add("draggable","process-item");
+  let div = document.createElement("div");
+  div.classList.add("draggable", "process-item");
+  div.setAttribute("draggable","true");
   div.textContent = proc;
-  // Mark it as infinitely clonable
-  // We'll handle the "clone on dragstart from bank" approach
+  // Each item in the bank has its own "dragstart" => infinite usage
+  div.addEventListener("dragstart", onBankItemDragStart);
   processBank.appendChild(div);
 });
-
-// Create a single "draggable" for each agent
-agents.forEach(ag => {
-  const div = document.createElement("div");
+agents.forEach(a => {
+  let div = document.createElement("div");
   div.classList.add("draggable","agent-item");
-  div.textContent = ag;
+  div.setAttribute("draggable","true");
+  div.textContent = a;
+  div.addEventListener("dragstart", onBankItemDragStart);
   agentBank.appendChild(div);
 });
 
-// ----- Drag & Drop logic -----
-// We do "clone on drop" approach from the bank, so the original stays there.
-const allBanks = [processBank, agentBank];
-allBanks.forEach(bank => {
-  bank.addEventListener("dragstart", onBankDragStart);
-});
+///////////////////////////////
+// Dropzone events
+///////////////////////////////
 document.querySelectorAll(".dropzone").forEach(zone => {
   zone.addEventListener("dragover", onDropzoneDragOver);
   zone.addEventListener("dragleave", onDragLeave);
   zone.addEventListener("drop", onDropzoneDrop);
 });
-// Also allow re-moving from a cell to another cell or back to bank => those clones must be draggable too
-// We'll manage that once a clone is created.
 
-// "Check," "Restart," "Copy" buttons
-const checkBtn = document.getElementById("checkButton");
-const retryBtn = document.getElementById("retryButton");
-const copyBtn  = document.getElementById("copyButton");
-
-checkBtn.addEventListener("click", onCheck);
-retryBtn.addEventListener("click", onRestart);
-copyBtn.addEventListener("click", onCopy);
-
-// ----- Drag from Bank => create a clone -----
-function onBankDragStart(ev) {
-  // The user is dragging an item from the bank
-  // We'll store some info in dataTransfer to clone it later.
+///////////////////////////////
+// Bank -> Cell: Infinite Cloning
+///////////////////////////////
+function onBankItemDragStart(ev) {
+  // We store the text + type in dataTransfer
   const text = ev.target.textContent;
   const isProcess = ev.target.classList.contains("process-item");
-  const isAgent   = ev.target.classList.contains("agent-item");
-
-  // Put a custom type data
-  ev.dataTransfer.setData("text/plain", text);  // The label
+  ev.dataTransfer.setData("text/plain", text);
   ev.dataTransfer.setData("bank-type", isProcess ? "process" : "agent");
-
-  // We'll use 'copy' effect
+  // effectAllowed can be "copy"
   ev.dataTransfer.effectAllowed = "copy";
 }
 
-// Dropzone drag events
 function onDropzoneDragOver(ev) {
-  ev.preventDefault(); 
+  ev.preventDefault();
   ev.currentTarget.classList.add("highlight");
   ev.dataTransfer.dropEffect = "copy";
 }
@@ -302,18 +277,17 @@ function onDropzoneDrop(ev) {
   ev.preventDefault();
   ev.currentTarget.classList.remove("highlight");
 
-  // If there's already occupant, remove it (placing occupant back to nowhere, or we could re-append to bank)
-  // We'll just remove it from the DOM so the user can re-drag from the bank if needed
-  const occupant = ev.currentTarget.querySelector(".draggable");
+  // If there's occupant, remove it
+  let occupant = ev.currentTarget.querySelector(".draggable");
   if (occupant) occupant.remove();
 
-  // Check data
   const text = ev.dataTransfer.getData("text/plain");
   const bankType = ev.dataTransfer.getData("bank-type");
 
-  // Create a clone (dragged item from bank) with the same style
+  // Create a clone with the same style
   let newEl = document.createElement("div");
   newEl.classList.add("draggable");
+  newEl.setAttribute("draggable","true");
   if (bankType === "process") {
     newEl.classList.add("process-item");
   } else {
@@ -321,68 +295,73 @@ function onDropzoneDrop(ev) {
   }
   newEl.textContent = text;
 
-  // Make it draggable if user wants to move it around or back to the bank
-  newEl.setAttribute("draggable", "true");
+  // If user drags from cell to cell, we want "move" effect,
+  // but let's unify the approach: we handle that from the code below
+  // so the new occupant is always a fresh clone from the data
+  // If you want to allow cell->cell direct moves, you'd do a different approach.
+
+  // Let the occupant be draggable so they can move it again if needed
   newEl.addEventListener("dragstart", onCellItemDragStart);
 
   ev.currentTarget.appendChild(newEl);
 }
 
-// If user drags from a cell => we move that item to another cell or back to bank
+///////////////////////////////
+// Cell -> Another Cell or Cell -> Bank
+// We'll treat it similarly, user is moving an occupant from a cell
+///////////////////////////////
 function onCellItemDragStart(ev) {
-  // The occupant from a cell is being dragged
-  // We'll store its text + type
+  // This occupant is being dragged from a cell. We'll remove it from the cell on drop
   const text = ev.target.textContent;
   const isProcess = ev.target.classList.contains("process-item");
-  const isAgent   = ev.target.classList.contains("agent-item");
-  
   ev.dataTransfer.setData("text/plain", text);
   ev.dataTransfer.setData("bank-type", isProcess ? "process" : "agent");
-
-  // We want the "move" effect, since we're moving a clone from cell
   ev.dataTransfer.effectAllowed = "move";
 }
 
-// We also need to allow dropping onto the banks if user changes mind
-allBanks.forEach(bank => {
+// Also accept drops in the banks (so user can remove occupant from cell)
+[processBank, agentBank].forEach(bank => {
   bank.addEventListener("dragover", (ev) => {
     ev.preventDefault();
-    ev.currentTarget.classList.add("highlight");
+    bank.classList.add("highlight");
     ev.dataTransfer.dropEffect = "move";
   });
   bank.addEventListener("dragleave", (ev) => {
-    ev.currentTarget.classList.remove("highlight");
+    bank.classList.remove("highlight");
   });
   bank.addEventListener("drop", (ev) => {
     ev.preventDefault();
-    ev.currentTarget.classList.remove("highlight");
+    bank.classList.remove("highlight");
 
-    // The occupant from a cell is being moved back to the bank
+    // We create a new item in the bank
     const text = ev.dataTransfer.getData("text/plain");
     const bankType = ev.dataTransfer.getData("bank-type");
 
-    // Create or re-create the item in the bank
     let newEl = document.createElement("div");
     newEl.classList.add("draggable");
+    newEl.setAttribute("draggable","true");
     if (bankType === "process") {
       newEl.classList.add("process-item");
     } else {
       newEl.classList.add("agent-item");
     }
     newEl.textContent = text;
-    newEl.setAttribute("draggable","true");
-    newEl.addEventListener("dragstart", onBankDragStart);
+    // Because it's in the bank, we attach "onBankItemDragStart"
+    newEl.addEventListener("dragstart", onBankItemDragStart);
 
     bank.appendChild(newEl);
-
-    // The original occupant in the cell is removed by the browser automatically
-    // or we can do it programmatically, but typically once you drop it, it's gone from the old location
   });
 });
 
-// ----- Check -----
+///////////////////////////////
+// Check, Restart, Copy
+///////////////////////////////
+document.getElementById("checkButton").addEventListener("click", onCheck);
+document.getElementById("retryButton").addEventListener("click", onRestart);
+document.getElementById("copyButton").addEventListener("click", onCopy);
+
 function onCheck() {
-  // Lock everything
+  // Lock drags
   document.querySelectorAll(".draggable").forEach(d => {
     d.setAttribute("draggable","false");
   });
@@ -393,30 +372,29 @@ function onCheck() {
   });
 
   let allCorrect = true;
+  // For each row, check occupant text vs. landformsData
+  const rows = document.querySelectorAll("#landformsTable tbody tr");
+  rows.forEach((tr, i) => {
+    const correctProc = landformsData[i].process;
+    const correctAgent= landformsData[i].agent;
 
-  // For each row => we have two cells: (processCell, agentCell)
-  // Check occupant's text vs. landformsData
-  document.querySelectorAll("#landformsTable tbody tr").forEach((tr, i) => {
-    let rowData = landformsData[i];
-    let processCell = tr.children[1];
-    let agentCell   = tr.children[2];
+    const procCell = tr.children[1]; 
+    const agentCell= tr.children[2];
 
-    // occupant in processCell
-    let procOcc = processCell.querySelector(".draggable");
-    if (!procOcc || procOcc.textContent !== rowData.process) {
+    const occupantProc = procCell.querySelector(".draggable");
+    if (!occupantProc || occupantProc.textContent !== correctProc) {
+      if (occupantProc) occupantProc.classList.add("incorrect");
       allCorrect = false;
-      if (procOcc) procOcc.classList.add("incorrect");
     } else {
-      procOcc.classList.add("correct");
+      occupantProc.classList.add("correct");
     }
 
-    // occupant in agentCell
-    let agentOcc = agentCell.querySelector(".draggable");
-    if (!agentOcc || agentOcc.textContent !== rowData.agent) {
+    const occupantAgent = agentCell.querySelector(".draggable");
+    if (!occupantAgent || occupantAgent.textContent !== correctAgent) {
+      if (occupantAgent) occupantAgent.classList.add("incorrect");
       allCorrect = false;
-      if (agentOcc) agentOcc.classList.add("incorrect");
     } else {
-      agentOcc.classList.add("correct");
+      occupantAgent.classList.add("correct");
     }
   });
 
@@ -427,42 +405,35 @@ function onCheck() {
   }
 }
 
-// ----- Restart -----
 function onRestart() {
-  // Remove occupant from all cells
+  // Remove occupant clones from table cells
   document.querySelectorAll(".dropzone .draggable").forEach(d => d.remove());
-  
-  // Re-enable banks
+
+  // Re-enable the bank items
   document.querySelectorAll(".draggable").forEach(d => {
     d.classList.remove("correct","incorrect");
     d.setAttribute("draggable","true");
   });
-  // Hide copy
+  // Hide copy button
   document.getElementById("copyButton").style.display = "none";
 }
 
-// ----- Copy Final Table -----
 async function onCopy() {
-  // Build a tab-delimited string
-  let text = "Landform\tDominant Process\tAgent of Formation\n";
-  document.querySelectorAll("#landformsTable tbody tr").forEach((tr, i) => {
-    let rowData = landformsData[i];
-    let landform = rowData.landform;
-    let proc   = tr.children[1].querySelector(".draggable")?.textContent || "";
-    let agent  = tr.children[2].querySelector(".draggable")?.textContent || "";
+  let text = "Landform\tDominant Process\tAgent\n";
+  const rows = document.querySelectorAll("#landformsTable tbody tr");
+  rows.forEach((tr, i) => {
+    const landform = landformsData[i].landform;
+    const proc = tr.children[1].querySelector(".draggable")?.textContent || "";
+    const agent= tr.children[2].querySelector(".draggable")?.textContent || "";
     text += `${landform}\t${proc}\t${agent}\n`;
   });
-
   try {
     await navigator.clipboard.writeText(text);
     alert("Copied table to clipboard. You can now paste it into your notes.");
-  } catch (err) {
-    alert("Failed to copy. Error: " + err);
+  } catch(e) {
+    alert("Copy failed: " + e);
   }
 }
-
-// Utility: no shuffle needed because only 1 each
-// but if you do want to randomize the order of processes/agents, you can implement a shuffle here
 </script>
 </body>
 </html>
