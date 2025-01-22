@@ -9,14 +9,12 @@
       font-family: Arial, sans-serif;
       background-color: #fff;
     }
-
     /* Flex container to layout table and banks side by side */
     #mainContainer {
       display: flex;
       gap: 20px;
       align-items: flex-start;
     }
-
     table {
       table-layout: fixed;
       width: 800px;
@@ -29,7 +27,6 @@
     col:nth-child(1) { width: 200px; }
     col:nth-child(2) { width: 300px; }
     col:nth-child(3) { width: 300px; }
-
     thead tr {
       background-color: #d97b00;
       color: #fff;
@@ -42,7 +39,6 @@
       vertical-align: middle;
       white-space: nowrap;
     }
-
     tbody tr:nth-child(odd) {
       background-color: #fce0b8; /* light orange */
       color: #000;
@@ -51,7 +47,6 @@
       background-color: #d97b00; /* dark orange */
       color: #fff;
     }
-
     th, td {
       border: none;
       text-align: center;
@@ -72,7 +67,6 @@
     .highlight {
       outline: 2px dashed #777;
     }
-
     /* Button styling */
     .btn {
       padding: 6px 12px;
@@ -82,20 +76,11 @@
       cursor: pointer;
       margin-right: 8px;
     }
-    #checkButton {
-      background-color: #007bff;
-      color: #fff;
-    }
-    #retryButton {
-      background-color: #ccc;
-      color: #333;
-    }
-    
+    #checkButton { background-color: #007bff; color: #fff; }
+    #retryButton { background-color: #ccc; color: #333; }
+    #copyButton { background-color: #28a745; color: #fff; display: none; }
     /* Container for buttons to add spacing */
-    #buttonContainer {
-      margin-top: 16px; /* Adjust space between table and buttons */
-    }
-
+    #buttonContainer { margin-top: 16px; }
     /* Bank container styling */
     #banksContainer {
       display: flex;
@@ -118,7 +103,6 @@
       margin: 4px 0;
       display: inline-block;
     }
-
     /* Correct/incorrect styling for feedback */
     .correct {
       background-color: #c3f7c3 !important;
@@ -128,11 +112,8 @@
       background-color: #f9c3c3 !important;
       color: #000 !important;
     }
-
     /* Ensure draggable elements inside dropzones have a visible color */
-    .dropzone .draggable {
-      color: #000 !important;
-    }
+    .dropzone .draggable { color: #000 !important; }
   </style>
 </head>
 <body>
@@ -155,9 +136,9 @@
       <div id="buttonContainer">
         <button id="checkButton" class="btn">Check</button>
         <button id="retryButton" class="btn">Restart</button>
+        <button id="copyButton" class="btn">Copy</button>
       </div>
     </div>
-
     <div id="banksContainer">
       <div class="bank" id="processBank">
         <h2>Dominant Processes</h2>
@@ -167,7 +148,6 @@
       </div>
     </div>
   </div>
-
   <script>
     // Data arrays
     const landformsData = [
@@ -191,19 +171,15 @@
     const tbody = document.querySelector("#landformsTable tbody");
     landformsData.forEach(obj => {
       const tr = document.createElement("tr");
-
       const tdLand = document.createElement("td");
       tdLand.textContent = obj.landform;
       tr.appendChild(tdLand);
-
       const tdProc = document.createElement("td");
       tdProc.classList.add("dropzone");
       tr.appendChild(tdProc);
-
       const tdAgent = document.createElement("td");
       tdAgent.classList.add("dropzone");
       tr.appendChild(tdAgent);
-
       tbody.appendChild(tr);
     });
 
@@ -255,7 +231,6 @@
         newEl.classList.add("draggable");
         newEl.textContent = text;
         newEl.setAttribute("draggable", "true");
-        // Allow this element to be dragged again (if needed)
         newEl.addEventListener("dragstart", e => {
           e.dataTransfer.setData("text/plain", text);
         });
@@ -263,43 +238,66 @@
       });
     });
 
-    // Check button functionality
+    // Check, Restart, and Copy button functionality
     document.getElementById("checkButton").addEventListener("click", onCheck);
     document.getElementById("retryButton").addEventListener("click", onRestart);
+    document.getElementById("copyButton").addEventListener("click", onCopy);
 
     function onCheck() {
-      // For each row, compare dropped answers to expected process and agent
+      let allCorrect = true;
       const rows = document.querySelectorAll("#landformsTable tbody tr");
       rows.forEach((tr, index) => {
         const expected = landformsData[index];
         const procZone = tr.children[1];
         const agentZone = tr.children[2];
-
-        // Clear previous feedback classes
         const procChild = procZone.querySelector(".draggable");
         const agentChild = agentZone.querySelector(".draggable");
         if(procChild) procChild.classList.remove("correct", "incorrect");
         if(agentChild) agentChild.classList.remove("correct", "incorrect");
-
-        // Check process
         if(procChild && procChild.textContent === expected.process) {
           procChild.classList.add("correct");
-        } else if(procChild) {
-          procChild.classList.add("incorrect");
+        } else {
+          if(procChild) procChild.classList.add("incorrect");
+          allCorrect = false;
         }
-
-        // Check agent
         if(agentChild && agentChild.textContent === expected.agent) {
           agentChild.classList.add("correct");
-        } else if(agentChild) {
-          agentChild.classList.add("incorrect");
+        } else {
+          if(agentChild) agentChild.classList.add("incorrect");
+          allCorrect = false;
         }
       });
+      document.getElementById("copyButton").style.display = allCorrect ? "inline-block" : "none";
     }
 
     function onRestart() {
-      // Remove all draggable elements from dropzones
       document.querySelectorAll(".dropzone .draggable").forEach(el => el.remove());
+      document.getElementById("copyButton").style.display = "none";
+    }
+
+    async function onCopy() {
+      const tableHtml = document.getElementById("landformsTable").outerHTML;
+      if (navigator.clipboard && window.ClipboardItem) {
+        try {
+          await navigator.clipboard.write([
+            new ClipboardItem({
+              "text/html": new Blob([tableHtml], { type: "text/html" }),
+              "text/plain": new Blob([tableHtml], { type: "text/plain" })
+            })
+          ]);
+          alert("Table copied to clipboard as HTML! You can paste it into a compatible notes app.");
+        } catch (err) {
+          alert("Failed to copy table: " + err);
+        }
+      } else {
+        // Fallback for browsers that don't support ClipboardItem
+        try {
+          await navigator.clipboard.writeText(tableHtml);
+          alert("Table copied to clipboard as plain text! (HTML formatting may be lost)");
+        } catch (err) {
+          alert("Failed to copy table: " + err);
+        }
+      }
     }
   </script>
 </body>
