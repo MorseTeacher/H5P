@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pattern Guesser</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    color: #fff;
+  }
+
+  h1 {
+    font-size: 2rem;
+    margin-bottom: 4px;
+    letter-spacing: 2px;
+    text-shadow: 0 0 20px rgba(100,200,255,0.6);
+  }
+
+  .subtitle {
+    font-size: 0.85rem;
+    color: #8ab4d4;
+    margin-bottom: 20px;
+  }
+
+  .game-container {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  /* ── Board ── */
+  .board {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .row-number {
+    width: 24px;
+    text-align: right;
+    font-size: 0.8rem;
+    color: #557;
+  }
+
+  .slots {
+    display: flex;
+    gap: 8px;
+  }
+
+  .slot {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 3px dashed #334;
+    background: #111827;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.2s;
+    position: relative;
+  }
+
+  .slot.filled {
+    border-style: solid;
+    border-color: rgba(255,255,255,0.3);
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.5);
+  }
+
+  .slot.active-row {
+    border-color: #4a9eff;
+    box-shadow: 0 0 10px rgba(74,158,255,0.4);
+  }
+
+  .slot.active-row.filled {
+    border-color: rgba(255,255,255,0.5);
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.4), 0 0 12px rgba(74,158,255,0.3);
+  }
+
+  .slot:hover.active-row {
+    transform: scale(1.08);
+  }
+
+  .slot.locked {
+    cursor: default;
+    opacity: 0.85;
+  }
+
+  /* ── Feedback pegs ── */
+  .feedback {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 5px;
+    padding: 4px;
+  }
+
+  .peg {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #1a2035;
+    border: 2px solid #334;
+  }
+
+  .peg.exact  { background: #ff4d6d; border-color: #ff4d6d; box-shadow: 0 0 6px #ff4d6d; }
+  .peg.close  { background: #ffd166; border-color: #ffd166; box-shadow: 0 0 6px #ffd166; }
+
+  /* ── Controls panel ── */
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    align-items: center;
+  }
+
+  /* Colour palette */
+  .palette {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .palette-label {
+    font-size: 0.75rem;
+    color: #8ab4d4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  .palette-colors {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .color-btn {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.2);
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+    box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3), 0 4px 10px rgba(0,0,0,0.4);
+  }
+
+  .color-btn:hover {
+    transform: scale(1.12);
+    box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3), 0 6px 18px rgba(0,0,0,0.5);
+  }
+
+  .color-btn.selected {
+    border-color: #fff;
+    transform: scale(1.15);
+    box-shadow: inset 0 -5px 10px rgba(0,0,0,0.3), 0 0 16px rgba(255,255,255,0.5);
+  }
+
+  /* Action buttons */
+  .btn {
+    padding: 10px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 700;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: transform 0.1s, box-shadow 0.15s, opacity 0.2s;
+  }
+
+  .btn:hover:not(:disabled) { transform: translateY(-2px); }
+  .btn:active:not(:disabled) { transform: translateY(0); }
+  .btn:disabled { opacity: 0.35; cursor: default; }
+
+  .btn-eval {
+    background: linear-gradient(135deg, #4a9eff, #0066cc);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(74,158,255,0.4);
+    width: 100%;
+  }
+
+  .btn-clear {
+    background: linear-gradient(135deg, #ff6b6b, #c0392b);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(255,100,100,0.35);
+    width: 100%;
+  }
+
+  .btn-new {
+    background: linear-gradient(135deg, #2ecc71, #27ae60);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(46,204,113,0.4);
+    width: 100%;
+    margin-top: 6px;
+  }
+
+  /* ── Legend ── */
+  .legend {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    padding: 12px 16px;
+    font-size: 0.78rem;
+    color: #9ab;
+    line-height: 1.8;
+    width: 100%;
+  }
+
+  .legend-dot {
+    display: inline-block;
+    width: 12px; height: 12px;
+    border-radius: 50%;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+
+  /* ── Score / message ── */
+  .message-area {
+    text-align: center;
+    min-height: 50px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+  }
+
+  .message {
+    font-size: 1.1rem;
+    font-weight: 700;
+    transition: opacity 0.3s;
+  }
+
+  .score-line {
+    font-size: 0.8rem;
+    color: #8ab4d4;
+  }
+
+  /* ── Settings ── */
+  .settings {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 8px;
+  }
+
+  .setting-group {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .setting-group label {
+    font-size: 0.7rem;
+    color: #8ab4d4;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  select {
+    background: #1a2035;
+    color: #fff;
+    border: 1px solid #334;
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  /* ── Solution reveal ── */
+  .solution-row {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-bottom: 6px;
+    opacity: 0;
+    transition: opacity 0.5s;
+  }
+
+  .solution-row.visible { opacity: 1; }
+
+  .solution-slot {
+    width: 52px;
+    height: 52px;
+    border-radius: 50%;
+    border: 3px solid rgba(255,255,255,0.35);
+    box-shadow: inset 0 -4px 8px rgba(0,0,0,0.4), 0 4px 12px rgba(0,0,0,0.5);
+  }
+
+  .solution-label {
+    font-size: 0.72rem;
+    color: #8ab4d4;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 540px) {
+    .slot, .color-btn, .solution-slot { width: 42px; height: 42px; }
+    .peg { width: 14px; height: 14px; }
+    h1 { font-size: 1.4rem; }
+  }
+
+  /* Win animation */
+  @keyframes pop {
+    0%   { transform: scale(1); }
+    40%  { transform: scale(1.25); }
+    100% { transform: scale(1); }
+  }
+  .pop { animation: pop 0.4s ease; }
+</style>
+</head>
+<body>
+
+<h1>PATTERN GUESSER</h1>
+<p class="subtitle">Find the hidden colour sequence</p>
+
+<div class="settings">
+  <div class="setting-group">
+    <label>Slots</label>
+    <select id="slotsSelect">
+      <option value="4">4</option>
+      <option value="5" selected>5</option>
+      <option value="6">6</option>
+    </select>
+  </div>
+  <div class="setting-group">
+    <label>Max guesses</label>
+    <select id="guessesSelect">
+      <option value="8" selected>8</option>
+      <option value="10">10</option>
+      <option value="12">12</option>
+    </select>
+  </div>
+  <div class="setting-group">
+    <label>Colours</label>
+    <select id="colorsSelect">
+      <option value="6" selected>6</option>
+      <option value="7">7</option>
+      <option value="8">8</option>
+    </select>
+  </div>
+  <div class="setting-group">
+    <label>Repeats</label>
+    <select id="repeatsSelect">
+      <option value="yes" selected>Allowed</option>
+      <option value="no">No repeats</option>
+    </select>
+  </div>
+</div>
+
+<div class="message-area">
+  <div class="message" id="message">Place your colours, then Evaluate!</div>
+  <div class="score-line" id="scoreLine"></div>
+</div>
+
+<div class="solution-label" id="solutionLabel"></div>
+<div class="solution-row" id="solutionRow"></div>
+
+<div class="game-container">
+  <div class="board" id="board"></div>
+
+  <div class="controls">
+    <div class="palette">
+      <div class="palette-label">Pick colour</div>
+      <div class="palette-colors" id="palette"></div>
+    </div>
+
+    <button class="btn btn-eval" id="evalBtn" onclick="evaluate()">Evaluate</button>
+    <button class="btn btn-clear" id="clearBtn" onclick="clearRow()">Clear Row</button>
+    <button class="btn btn-new" onclick="newGame()">New Game</button>
+
+    <div class="legend">
+      <div><span class="legend-dot" style="background:#ff4d6d;box-shadow:0 0 4px #ff4d6d"></span> Right colour &amp; position</div>
+      <div><span class="legend-dot" style="background:#ffd166;box-shadow:0 0 4px #ffd166"></span> Right colour, wrong position</div>
+      <div><span class="legend-dot" style="background:#1a2035;border:1px solid #334"></span> Not in pattern</div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Palette of colours ──────────────────────────────────────────
+const ALL_COLORS = [
+  { id: 0, hex: '#e74c3c', name: 'Red'    },
+  { id: 1, hex: '#e67e22', name: 'Orange' },
+  { id: 2, hex: '#f1c40f', name: 'Yellow' },
+  { id: 3, hex: '#2ecc71', name: 'Green'  },
+  { id: 4, hex: '#3498db', name: 'Blue'   },
+  { id: 5, hex: '#9b59b6', name: 'Purple' },
+  { id: 6, hex: '#e91e8c', name: 'Pink'   },
+  { id: 7, hex: '#1abc9c', name: 'Teal'   },
+];
+
+// ── Game state ──────────────────────────────────────────────────
+let secret       = [];
+let guesses      = [];   // array of arrays
+let currentGuess = [];
+let activeRow    = 0;
+let gameOver     = false;
+let selectedColor = null;
+let SLOTS, MAX_GUESSES, NUM_COLORS, ALLOW_REPEATS;
+
+// ── Init ────────────────────────────────────────────────────────
+function newGame() {
+  SLOTS        = parseInt(document.getElementById('slotsSelect').value);
+  MAX_GUESSES  = parseInt(document.getElementById('guessesSelect').value);
+  NUM_COLORS   = parseInt(document.getElementById('colorsSelect').value);
+  ALLOW_REPEATS = document.getElementById('repeatsSelect').value === 'yes';
+
+  const colors = ALL_COLORS.slice(0, NUM_COLORS);
+  secret = generateSecret(colors);
+  guesses = [];
+  currentGuess = Array(SLOTS).fill(null);
+  activeRow = 0;
+  gameOver = false;
+  selectedColor = null;
+
+  document.getElementById('solutionRow').classList.remove('visible');
+  document.getElementById('solutionLabel').textContent = '';
+  setMessage('Place your colours, then Evaluate!', '');
+  document.getElementById('evalBtn').disabled = false;
+  document.getElementById('clearBtn').disabled = false;
+
+  renderPalette(colors);
+  renderBoard();
+}
+
+function generateSecret(colors) {
+  if (ALLOW_REPEATS) {
+    return Array.from({ length: SLOTS }, () => colors[Math.floor(Math.random() * colors.length)]);
+  } else {
+    const pool = [...colors];
+    const result = [];
+    for (let i = 0; i < SLOTS; i++) {
+      const idx = Math.floor(Math.random() * pool.length);
+      result.push(pool.splice(idx, 1)[0]);
+    }
+    return result;
+  }
+}
+
+// ── Rendering ───────────────────────────────────────────────────
+function renderPalette(colors) {
+  const el = document.getElementById('palette');
+  el.innerHTML = '';
+  colors.forEach(c => {
+    const btn = document.createElement('button');
+    btn.className = 'color-btn';
+    btn.style.background = c.hex;
+    btn.title = c.name;
+    btn.setAttribute('data-id', c.id);
+    btn.onclick = () => selectColor(c.id);
+    el.appendChild(btn);
+  });
+}
+
+function selectColor(id) {
+  if (gameOver) return;
+  selectedColor = id;
+  // highlight selected
+  document.querySelectorAll('.color-btn').forEach(b => {
+    b.classList.toggle('selected', parseInt(b.dataset.id) === id);
+  });
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = '';
+
+  for (let r = MAX_GUESSES - 1; r >= 0; r--) {
+    const row = document.createElement('div');
+    row.className = 'row';
+    row.id = `row-${r}`;
+
+    // row number
+    const num = document.createElement('div');
+    num.className = 'row-number';
+    num.textContent = r + 1;
+    row.appendChild(num);
+
+    // slots
+    const slots = document.createElement('div');
+    slots.className = 'slots';
+
+    for (let s = 0; s < SLOTS; s++) {
+      const slot = document.createElement('div');
+      slot.className = 'slot';
+      if (r === activeRow && !gameOver) slot.classList.add('active-row');
+
+      const guess = guesses[r];
+      if (guess) {
+        slot.classList.add('locked');
+        if (guess[s]) {
+          slot.classList.add('filled');
+          slot.style.background = guess[s].hex;
+        }
+      } else if (r === activeRow) {
+        if (currentGuess[s]) {
+          slot.classList.add('filled');
+          slot.style.background = currentGuess[s].hex;
+        }
+        slot.onclick = () => placeColor(s);
+      }
+      slots.appendChild(slot);
+    }
+    row.appendChild(slots);
+
+    // feedback pegs
+    const fb = document.createElement('div');
+    fb.className = 'feedback';
+    const result = guesses[r] ? scoreGuess(guesses[r], secret) : null;
+
+    for (let p = 0; p < SLOTS; p++) {
+      const peg = document.createElement('div');
+      peg.className = 'peg';
+      if (result) {
+        if (p < result.exact)              peg.classList.add('exact');
+        else if (p < result.exact + result.close) peg.classList.add('close');
+      }
+      fb.appendChild(peg);
+    }
+    row.appendChild(fb);
+
+    board.appendChild(row);
+  }
+}
+
+// ── Interaction ─────────────────────────────────────────────────
+function placeColor(slotIndex) {
+  if (gameOver || selectedColor === null) return;
+  const color = ALL_COLORS.find(c => c.id === selectedColor);
+  currentGuess[slotIndex] = color;
+  renderBoard();
+}
+
+function clearRow() {
+  if (gameOver) return;
+  currentGuess = Array(SLOTS).fill(null);
+  renderBoard();
+}
+
+// ── Scoring ─────────────────────────────────────────────────────
+function scoreGuess(guess, secret) {
+  let exact = 0, close = 0;
+  const secretLeft  = [];
+  const guessLeft   = [];
+
+  for (let i = 0; i < SLOTS; i++) {
+    if (guess[i].id === secret[i].id) {
+      exact++;
+    } else {
+      secretLeft.push(secret[i].id);
+      guessLeft.push(guess[i].id);
+    }
+  }
+
+  guessLeft.forEach(id => {
+    const idx = secretLeft.indexOf(id);
+    if (idx !== -1) {
+      close++;
+      secretLeft.splice(idx, 1);
+    }
+  });
+
+  return { exact, close };
+}
+
+// ── Evaluate ────────────────────────────────────────────────────
+function evaluate() {
+  if (gameOver) return;
+
+  // Check all slots filled
+  if (currentGuess.some(c => c === null)) {
+    pulse('message', 'Fill all ' + SLOTS + ' slots first!');
+    return;
+  }
+
+  guesses[activeRow] = [...currentGuess];
+  const result = scoreGuess(currentGuess, secret);
+
+  // Total score: exact = 2pts, close = 1pt
+  const turnScore = result.exact * 2 + result.close;
+  const totalScore = guesses.reduce((sum, g) => {
+    const s = scoreGuess(g, secret);
+    return sum + s.exact * 2 + s.close;
+  }, 0);
+
+  if (result.exact === SLOTS) {
+    gameOver = true;
+    revealSolution();
+    const efficiency = Math.round((1 / (activeRow + 1)) * 100);
+    setMessage('🎉 Pattern found!', `Guesses used: ${activeRow + 1}/${MAX_GUESSES} · Efficiency: ${efficiency}%`);
+    document.getElementById('evalBtn').disabled = true;
+    document.getElementById('clearBtn').disabled = true;
+    renderBoard();
+    return;
+  }
+
+  activeRow++;
+  currentGuess = Array(SLOTS).fill(null);
+
+  if (activeRow >= MAX_GUESSES) {
+    gameOver = true;
+    revealSolution();
+    setMessage('Out of guesses!', `Total score: ${totalScore} pts`);
+    document.getElementById('evalBtn').disabled = true;
+    document.getElementById('clearBtn').disabled = true;
+    renderBoard();
+    return;
+  }
+
+  setMessage(
+    `${result.exact} exact · ${result.close} close`,
+    `Turn score: ${turnScore} pts · Total: ${totalScore} pts`
+  );
+  renderBoard();
+}
+
+// ── Solution reveal ──────────────────────────────────────────────
+function revealSolution() {
+  const row = document.getElementById('solutionRow');
+  row.innerHTML = '';
+  secret.forEach(c => {
+    const s = document.createElement('div');
+    s.className = 'solution-slot';
+    s.style.background = c.hex;
+    row.appendChild(s);
+  });
+  document.getElementById('solutionLabel').textContent = 'Hidden pattern:';
+  row.classList.add('visible');
+}
+
+// ── Helpers ─────────────────────────────────────────────────────
+function setMessage(main, sub) {
+  document.getElementById('message').textContent = main;
+  document.getElementById('scoreLine').textContent = sub;
+}
+
+function pulse(id, text) {
+  const el = document.getElementById(id);
+  const orig = el.textContent;
+  el.textContent = text;
+  el.classList.add('pop');
+  setTimeout(() => {
+    el.classList.remove('pop');
+    el.textContent = orig;
+  }, 1400);
+}
+
+// ── Start ────────────────────────────────────────────────────────
+newGame();
+</script>
+</body>
+</html>
