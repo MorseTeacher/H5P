@@ -1,236 +1,57 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Mayor for a Day: The Liveability Challenge</title>
-  <style>
-    :root { --bg:#0f172a; --panel:#111827; --muted:#94a3b8; --text:#e2e8f0; --accent:#22c55e; --warn:#f59e0b; --bad:#ef4444; }
-    body { margin:0; font-family:Arial, sans-serif; background:linear-gradient(180deg,#0b1020,#111827); color:var(--text); }
-    .wrap { max-width:1100px; margin:0 auto; padding:20px; }
-    h1,h2,h3 { margin:.4rem 0; }
-    .grid { display:grid; grid-template-columns: 1.2fr 1fr; gap:16px; }
-    .panel { background:rgba(17,24,39,.92); border:1px solid #334155; border-radius:12px; padding:14px; }
-    .stats { display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:8px; }
-    .stat { background:#0b1220; border:1px solid #334155; border-radius:8px; padding:8px; }
-    .small { color:var(--muted); font-size:.9rem; }
-    .row { display:flex; gap:8px; flex-wrap:wrap; }
-    button, select { background:#1f2937; color:var(--text); border:1px solid #475569; border-radius:8px; padding:8px; }
-    button:disabled { opacity:.45; }
-    .choice { display:flex; justify-content:space-between; align-items:center; border:1px solid #334155; border-radius:8px; padding:8px; margin:6px 0; }
-    .tag { padding:2px 7px; border-radius:999px; font-size:.8rem; background:#1e293b; }
-    .good { color:var(--accent);} .warn { color:var(--warn);} .bad { color:var(--bad);}
-    .log { max-height:240px; overflow:auto; background:#0b1220; padding:8px; border-radius:8px; border:1px solid #334155; }
-    .log p { margin:.4rem 0; }
-    @media (max-width: 900px){ .grid{grid-template-columns:1fr;} }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Liveability Mayor: Visible Prototype</title>
+<style>
+:root{--line:#d5dde8;--ink:#102033;--muted:#617084;--blue:#1d4ed8;--green:#15803d;--amber:#b45309;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at top left,#365f86 0,#102033 46%,#07111f 100%);color:var(--ink)}
+.shell{max-width:1360px;margin:0 auto;padding:18px}header{color:#fff;display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin-bottom:14px}
+.layout{display:grid;grid-template-columns:1.1fr .95fr;grid-template-areas:'map right' 'sell sell';gap:16px}.mapPanel{grid-area:map}.rightGrid{grid-area:right;display:grid;gap:12px}.sellPanel{grid-area:sell}
+.panel{background:#f8fafc;border:1px solid var(--line);border-radius:18px;padding:14px}.panelTitle{display:flex;justify-content:space-between}.small{font-size:13px;color:var(--muted)}
+.topStats{display:flex;gap:10px}.topStat{background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);border-radius:14px;padding:10px 14px;text-align:center}.topStat b{display:block;font-size:24px}
+.map{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}.tile{min-height:84px;border-radius:14px;border:2px solid rgba(15,23,42,.15);padding:8px;display:flex;flex-direction:column;justify-content:space-between}.tile.issue{border-color:#f59e0b}
+.tile.housing{background:#fee2e2}.tile.center{background:#e0e7ff}.tile.road{background:#e5e7eb}.tile.green{background:#bbf7d0}.tile.water{background:#bfdbfe}.tile.service{background:#cffafe}
+.complaints,.actions,.adGrid{display:grid;gap:8px}.complaint{background:#fff7ed;border:1px solid #fed7aa;border-left:6px solid #f97316;border-radius:12px;padding:10px}
+.actions{grid-template-columns:repeat(2,minmax(0,1fr))}.cardBtn{border:2px solid var(--line);background:#fff;border-radius:14px;padding:10px;text-align:left}.cardBtn.disabled{opacity:.45}
+.bars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:12px}.barCard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:8px}.meter{height:10px;background:#e2e8f0;border-radius:99px;overflow:hidden}.fill{height:100%}
+.taxRow{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.pillBtn{border:2px solid var(--line);border-radius:999px;padding:9px;background:#fff}.pillBtn.active{border-color:var(--blue);background:#dbeafe}
+.adGrid{grid-template-columns:repeat(4,minmax(0,1fr))}.adCard{background:#fff;border:1px solid var(--line);border-radius:14px;padding:9px}.miniBtn{padding:4px 8px}
+@media(max-width:980px){.layout{grid-template-columns:1fr;grid-template-areas:'map' 'right' 'sell'}.adGrid,.actions,.bars{grid-template-columns:1fr}}
+</style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Mayor for a Day: The Liveability Challenge</h1>
-  <p class="small">4 rounds. Pick a target group, 2 upgrades, tax, and ad channels. Balance growth with trust and liveability.</p>
-
-  <div class="grid">
-    <section class="panel">
-      <h2>Riverbend Snapshot</h2>
-      <div id="status" class="stats"></div>
-      <hr>
-      <h3>Resident Complaints</h3>
-      <div id="complaints"></div>
-      <h3>Round Actions</h3>
-      <label>Target group:
-        <select id="target"></select>
-      </label>
-      <h4>Pick 2 upgrades</h4>
-      <div id="upgrades"></div>
-      <label>Tax setting:
-        <select id="tax"></select>
-      </label>
-      <h4>Advertising (pick 2 channels)</h4>
-      <div id="ads"></div>
-      <div class="row">
-        <button id="runRound">Run Round</button>
-        <button id="reset">Reset Game</button>
-      </div>
-    </section>
-
-    <section class="panel">
-      <h2>Round Report</h2>
-      <div id="roundReport" class="small">Start Round 1.</div>
-      <h3>Mayor Log</h3>
-      <div id="log" class="log"></div>
-      <h3>Final Report Card</h3>
-      <div id="final" class="small">Complete 4 rounds to see results.</div>
-    </section>
-  </div>
-</div>
-
+<div class="shell"><header><div><h1>Liveability Mayor</h1></div><div class="topStats"><div class="topStat"><span>Round</span><b id="roundStat">1/4</b></div><div class="topStat"><span>Population</span><b id="popStat">8,000</b></div><div class="topStat"><span>Budget</span><b id="budgetStat">$5m</b></div></div></header>
+<main class="layout">
+<section class="panel mapPanel"><div class="panelTitle"><h2>Riverbend Map</h2><div class="small"><b id="actionsLeft">2</b> actions left</div></div><div id="map" class="map"></div><div id="scoreBars" class="bars"></div></section>
+<section class="rightGrid"><div class="panel"><div class="panelTitle"><h2>Resident Pressure</h2></div><div id="complaints" class="complaints"></div></div><div class="panel"><div class="panelTitle"><h2>Build or Improve</h2><span class="small">Affordable options only</span></div><div id="actions" class="actions"></div></div><div class="panel"><h2>Round Result</h2><div id="result">Pick two actions.</div></div></section>
+<section class="panel sellPanel"><div class="panelTitle"><h2>Sell the Town</h2><span class="small">Tax affects affordability and next-round funds, not ad quality.</span></div><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><div><label>Target</label><select id="targetSelect"></select></div><div><label>Tax</label><div class="taxRow"><button class="pillBtn" data-tax="low">Low</button><button class="pillBtn active" data-tax="medium">Medium</button><button class="pillBtn" data-tax="high">High</button></div></div></div><div id="ads" class="adGrid"></div><div id="forecast" class="small"></div><button id="launchBtn">Launch Campaign</button><button id="resetBtn">Reset</button></section>
+</main></div>
 <script>
-const initialState = () => ({
-  round: 1, population: 8000, budget: 5,
-  access:45, safety:60, environment:70, community:55, affordability:65,
-  jobs:40, health:45, youth:35, trust:60, capacity:50,
-  complaintsAddressed: 0, history: []
-});
-let state = initialState();
-
-const targetGroups = {
-  "Young families": ["safety","affordability","community","access"],
-  "Teenagers": ["youth","access","community"],
-  "Retirees": ["health","safety","access"],
-  "Young workers": ["jobs","affordability","access","community"],
-  "Low-income renters": ["affordability","access","health"],
-  "Tree-changers": ["environment","safety","community"],
-  "Business owners": ["jobs","access","trust"],
-  "Tourists": ["community","environment","access"]
-};
-
-const upgrades = [
-  {name:"Improve bus routes", cost:1, effects:{access:15,youth:10,capacity:8}},
-  {name:"Build skate park", cost:0.5, effects:{youth:15,community:5}},
-  {name:"Upgrade parks", cost:1, effects:{environment:10,community:5,safety:3}},
-  {name:"New medical centre", cost:2, effects:{health:20,safety:5}},
-  {name:"Affordable housing project", cost:2, effects:{affordability:20,capacity:10,environment:-5}},
-  {name:"Shopping centre", cost:2, effects:{jobs:15,health:10,environment:-10,access:-5}},
-  {name:"Footpath & crossings", cost:1, effects:{safety:10,access:10}},
-  {name:"Street lighting", cost:0.5, effects:{safety:15}},
-  {name:"Community hub/library", cost:1, effects:{community:10,youth:10,health:5}},
-  {name:"Road widening", cost:1, effects:{access:10,environment:-10,community:-5}},
-  {name:"Festival/events program", cost:0.5, effects:{community:10,jobs:5}},
-  {name:"Flood mitigation", cost:2, effects:{safety:15,trust:10,environment:10}}
-];
-
-const taxes = {
-  Low: {income:2, trust:5, jobs:5},
-  Medium: {income:3, trust:0, jobs:0},
-  High: {income:4, trust:-10, jobs:-5}
-};
-
-const ads = {
-  "Instagram/TikTok": ["Teenagers","Young workers","Tourists"],
-  "Facebook/community": ["Young families","Retirees"],
-  Radio: ["Retirees","Young workers"],
-  Newspaper: ["Retirees"],
-  Streaming: ["Young families","Young workers"],
-  "Gaming sites": ["Teenagers","Young workers"],
-  "Real estate": ["Young families","Tree-changers"],
-  "Tourism website": ["Tourists"],
-  "School newsletters": ["Young families"]
-};
-
-function clamp(v){ return Math.max(0, Math.min(100, v)); }
-function addLog(msg){ document.getElementById('log').innerHTML = `<p>R${state.round}: ${msg}</p>` + document.getElementById('log').innerHTML; }
-function liveAvg(){ return (state.access+state.safety+state.environment+state.community+state.affordability+state.jobs+state.health)/7; }
-
-function getComplaints(){
-  const c=[];
-  if(state.youth<50) c.push(["There’s nothing for teenagers to do.","youth"]);
-  if(state.access<50) c.push(["The buses are unreliable.","access"]);
-  if(state.affordability<55) c.push(["Rent is getting too expensive.","affordability"]);
-  if(state.jobs<50) c.push(["We need more jobs.","jobs"]);
-  if(state.safety<55) c.push(["The town centre feels unsafe at night.","safety"]);
-  if(state.health<55) c.push(["There aren’t enough doctors.","health"]);
-  if(state.environment<60) c.push(["Don’t destroy the green spaces.","environment"]);
-  if(state.community<50) c.push(["Young families are leaving.","community"]);
-  return c.slice(0,3);
-}
-
-function render(){
-  const s = document.getElementById('status');
-  s.innerHTML = [
-    ["Round",`${state.round}/4`],["Population",state.population.toLocaleString()],["Budget",`$${state.budget.toFixed(1)}m`],
-    ["Access",state.access],["Safety",state.safety],["Environment",state.environment],["Community",state.community],
-    ["Affordability",state.affordability],["Jobs",state.jobs],["Health",state.health],["Youth",state.youth],["Public Trust",state.trust],["Capacity",state.capacity]
-  ].map(([k,v])=>`<div class='stat'><div class='small'>${k}</div><b>${v}</b></div>`).join('');
-  const complaints = getComplaints();
-  document.getElementById('complaints').innerHTML = complaints.length ? complaints.map(c=>`<div class='choice'>${c[0]} <span class='tag'>${c[1]}</span></div>`).join('') : '<div class="small">No major complaints this round.</div>';
-}
-
-function setupControls(){
-  document.getElementById('target').innerHTML = Object.keys(targetGroups).map(t=>`<option>${t}</option>`).join('');
-  document.getElementById('tax').innerHTML = Object.keys(taxes).map(t=>`<option>${t}</option>`).join('');
-  document.getElementById('upgrades').innerHTML = upgrades.map((u,i)=>`<label class='choice'><span>${u.name} <span class='small'>($${u.cost}m)</span></span><input type='checkbox' value='${i}'></label>`).join('');
-  document.getElementById('ads').innerHTML = Object.keys(ads).map((a,i)=>`<label class='choice'><span>${a}</span><input type='checkbox' value='${i}' data-name='${a}'></label>`).join('');
-}
-
-function runRound(){
-  const selectedUpgrades = [...document.querySelectorAll('#upgrades input:checked')].map(x=>+x.value);
-  const selectedAds = [...document.querySelectorAll('#ads input:checked')].map(x=>x.dataset.name);
-  if(selectedUpgrades.length!==2 || selectedAds.length!==2) return alert('Pick exactly 2 upgrades and 2 ad channels.');
-
-  const complaints = getComplaints();
-  let addressed = false;
-  let spend = 0;
-  selectedUpgrades.forEach(i=>{
-    const u = upgrades[i]; spend += u.cost;
-    Object.entries(u.effects).forEach(([k,v])=> state[k]=clamp(state[k]+v));
-    if(complaints.some(c=>Object.keys(u.effects).includes(c[1]))) addressed = true;
-  });
-  if(spend>state.budget) { alert('Not enough budget for these upgrades.'); return; }
-  state.budget -= spend;
-  if(addressed) state.complaintsAddressed++;
-
-  const tax = document.getElementById('tax').value;
-  state.budget += taxes[tax].income; state.trust = clamp(state.trust + taxes[tax].trust); state.jobs = clamp(state.jobs + taxes[tax].jobs);
-
-  const target = document.getElementById('target').value;
-  const needs = targetGroups[target];
-  const targetAppeal = needs.reduce((a,k)=>a+state[k],0)/needs.length;
-  let adReach = 0;
-  selectedAds.forEach(a=>{ if(ads[a].includes(target)) adReach += 12; else adReach += 4; });
-  const reality = liveAvg();
-  const promise = adReach*3 + 35;
-  const hypeGap = Math.max(0, promise - reality);
-  state.trust = clamp(state.trust - Math.round(hypeGap/12));
-
-  const capacityPressure = Math.max(0, (state.population-8000)/250 + (60-state.capacity));
-  const growth = Math.round((targetAppeal-45)*5 + adReach*8 + (state.trust-50)*4 - capacityPressure*6);
-  const delta = Math.max(-120, Math.min(900, growth));
-  state.population = Math.max(7000, state.population + delta);
-
-  const reaction = delta>250 ? 'Strong response to your plan.' : delta>0 ? 'Some people moved in.' : 'Residents are not convinced.';
-  document.getElementById('roundReport').innerHTML = `<b>${reaction}</b><br>Population change: <span class='${delta>=0?'good':'bad'}'>${delta>=0?'+':''}${delta}</span><br>Target appeal: ${Math.round(targetAppeal)} | Ad reach: ${adReach} | Trust: ${state.trust}`;
-  addLog(`${target} campaign with ${selectedAds.join(' + ')} and tax ${tax}. Pop ${delta>=0?'+':''}${delta}.`);
-
-  state.round++;
-  [...document.querySelectorAll('input[type=checkbox]')].forEach(c=>c.checked=false);
-  if(state.round>4){
-    finishGame();
-    document.getElementById('runRound').disabled = true;
-  }
-  render();
-}
-
-function finishGame(){
-  const overall = Math.round(liveAvg()*0.30);
-  const growthPct = ((state.population-8000)/8000)*100;
-  const growth = growthPct>2&&growthPct<20 ? 13 : growthPct>=20 ? 7 : 5;
-  const equity = Math.round((Math.min(state.youth,state.health,state.affordability,state.safety)/100)*15);
-  const budget = state.budget>0 ? 8 : 2;
-  const trust = Math.round((state.trust/100)*10);
-  const env = Math.round((state.environment/100)*10);
-  const response = Math.round((state.complaintsAddressed/4)*10);
-  const total = overall+growth+equity+budget+trust+env+response;
-
-  let type = 'Balanced Liveable Town';
-  if(state.trust<40 && growthPct>10) type = 'Overhyped Growth Town';
-  else if(liveAvg()>65 && growthPct<5) type = 'Hidden Gem';
-  else if(state.affordability<45) type = 'Exclusive Lifestyle Town';
-  else if(state.youth>70) type = 'Youth-Friendly Town';
-  else if(state.jobs>70 && state.environment<50) type = 'Business Boom Town';
-  else if(state.access>65 && state.environment<45) type = 'Car-Dependent Sprawl Town';
-
-  document.getElementById('final').innerHTML = `
-    <b>Final Score: ${total}/100</b><br>
-    Liveability ${overall}/30 | Growth ${growth}/15 | Equity ${equity}/15 | Budget ${budget}/10 | Trust ${trust}/10 | Environment ${env}/10 | Complaints ${response}/10<br><br>
-    <b>Town Type:</b> ${type}<br>
-    <b>Reflection:</b> Was your advertising promise honest, and was growth sustainable for all groups?
-  `;
-}
-
-setupControls(); render();
-document.getElementById('runRound').onclick = runRound;
-document.getElementById('reset').onclick = ()=>{ state = initialState(); document.getElementById('runRound').disabled=false; document.getElementById('final').innerHTML='Complete 4 rounds to see results.'; document.getElementById('roundReport').textContent='Start Round 1.'; document.getElementById('log').innerHTML=''; [...document.querySelectorAll('input[type=checkbox]')].forEach(c=>c.checked=false); render(); };
-</script>
-</body>
-</html>
+const tilesBase=[{id:'station',label:'Bus Stop',type:'road',symbol:'BUS'},{id:'clinic',label:'Clinic',type:'service',symbol:'CARE'},{id:'market',label:'Market',type:'center',symbol:'MKT'},{id:'crossing',label:'Crossing',type:'road',symbol:'X'},{id:'wetlands',label:'Wetlands',type:'water',symbol:'WILD'},{id:'rentals',label:'Rentals',type:'housing',symbol:'RENT'},{id:'library',label:'Hall',type:'center',symbol:'HALL'},{id:'park',label:'Park',type:'green',symbol:'PARK'},{id:'oldShops',label:'Shops',type:'center',symbol:'SHOP'},{id:'empty1',label:'Lot',type:'green',symbol:'LOT'}];
+while(tilesBase.length<25) tilesBase.push({id:'g'+tilesBase.length,label:'Block',type:'green',symbol:'•'});
+const scoreDefs={access:'Access',safety:'Safety',environment:'Environment',community:'Community',affordability:'Affordability',jobs:'Jobs',health:'Health',youth:'Youth',trust:'Trust'};
+const groups={'Young families':{wants:['safety','affordability','community','access'],channels:['Facebook','Streaming','Real estate']},'Teenagers':{wants:['youth','access','community'],channels:['Instagram','Gaming','Streaming']},'Retirees':{wants:['health','safety','access'],channels:['Facebook','Radio','Newspaper']},'Young workers':{wants:['jobs','affordability','access','community'],channels:['Instagram','Streaming','Gaming']}};
+const actionCards=[{name:'Run Better Bus Loop',cost:1,effects:{access:16,youth:8},fixes:['access','youth']},{name:'Open Medical Centre',cost:2,effects:{health:20,safety:4},fixes:['health']},{name:'Affordable Housing',cost:2,effects:{affordability:18,environment:-4},fixes:['affordability']},{name:'Fix Crossings',cost:1,effects:{safety:14,access:10},fixes:['safety','access']},{name:'Revive Main Street',cost:1.5,effects:{jobs:16,community:8},fixes:['jobs','community']},{name:'Upgrade Park',cost:1,effects:{environment:12,community:8},fixes:['environment','community']},{name:'Youth Space',cost:.5,effects:{youth:18,community:6},fixes:['youth']}];
+const adChannels={Instagram:{},Facebook:{},Radio:{},Newspaper:{},Streaming:{},Gaming:{},'Real estate':{},Tourism:{}};
+let state;const clamp=v=>Math.max(0,Math.min(100,Math.round(v)));const money=v=>'$'+(Math.round(v*10)/10)+'m';
+function freshState(){return{round:1,maxRounds:4,population:8000,budget:5,actionsLeft:2,tax:'medium',scores:{access:45,safety:60,environment:70,community:55,affordability:65,jobs:40,health:45,youth:35,trust:60},tiles:structuredClone(tilesBase),built:[],adSpend:Object.fromEntries(Object.keys(adChannels).map(k=>[k,0])),target:'Young families'}}
+function avg(keys){return keys.reduce((a,k)=>a+state.scores[k],0)/keys.length}function groupMood(n){return clamp(avg(groups[n].wants))}
+function getComplaints(){const s=state.scores,l=[];if(s.youth<55)l.push({cat:'youth',text:'Nothing for teenagers.'});if(s.access<55)l.push({cat:'access',text:'Buses unreliable.'});if(s.jobs<55)l.push({cat:'jobs',text:'Need jobs.'});if(s.health<55)l.push({cat:'health',text:'Not enough doctors.'});if(s.affordability<58)l.push({cat:'affordability',text:'Rent too expensive.'});if(s.safety<58)l.push({cat:'safety',text:'Unsafe at night.'});return l.sort((a,b)=>s[a.cat]-s[b.cat]).slice(0,3)}
+function render(){roundStat.textContent=`${Math.min(state.round,state.maxRounds)}/${state.maxRounds}`;popStat.textContent=state.population.toLocaleString();budgetStat.textContent=money(state.budget);actionsLeft.textContent=state.actionsLeft;renderMap();renderBars();complaints.innerHTML=getComplaints().map(c=>`<div class='complaint'><b>${c.cat}</b> ${c.text}</div>`).join('');renderActions();renderTarget();renderTax();renderAds();renderForecast()}
+function renderMap(){map.innerHTML=state.tiles.map(t=>`<div class='tile ${t.type}'><div>${t.symbol}</div><div>${t.label}</div></div>`).join('')}
+function renderBars(){scoreBars.innerHTML=Object.entries(scoreDefs).map(([k,l])=>`<div class='barCard'><div>${l} ${state.scores[k]}</div><div class='meter'><div class='fill' style='width:${state.scores[k]}%;background:${state.scores[k]>=70?'#15803d':state.scores[k]>=50?'#b45309':'#b91c1c'}'></div></div></div>`).join('')}
+function renderActions(){actions.innerHTML=actionCards.map(c=>{const affordable=state.budget>=c.cost;const usable=state.actionsLeft>0&&affordable&&!state.built.includes(c.name);return `<button class='cardBtn ${affordable?'':'disabled'}' ${usable?'':'disabled'} onclick="applyAction('${c.name}')"><div><b>${c.name}</b></div><div>${money(c.cost)}</div></button>`}).join('')}
+function renderTarget(){targetSelect.innerHTML=Object.keys(groups).map(g=>`<option ${g===state.target?'selected':''}>${g}</option>`).join('');targetSelect.onchange=()=>{state.target=targetSelect.value;renderForecast()}}
+function renderTax(){document.querySelectorAll('[data-tax]').forEach(b=>{b.classList.toggle('active',b.dataset.tax===state.tax);b.onclick=()=>{state.tax=b.dataset.tax;renderTax();renderForecast()}})}
+function renderAds(){ads.innerHTML=Object.keys(adChannels).map(name=>`<div class='adCard'><div>${name}: ${state.adSpend[name]}</div><button class='miniBtn' onclick="changeAd('${name}',-1)">-</button><button class='miniBtn' onclick="changeAd('${name}',1)">+</button></div>`).join('')}
+function selectedAdTotal(){return Object.values(state.adSpend).reduce((a,b)=>a+b,0)}
+function renderForecast(){const target=state.target;let reach=0;for(const [ch,a] of Object.entries(state.adSpend)){if(a>0)reach+=a*(groups[target].channels.includes(ch)?18:6)}forecast.innerHTML=`Target fit ${groupMood(target)} | Ad reach ${reach} | Tax ${state.tax} affects affordability+next budget only.`}
+function applyAction(name){const c=actionCards.find(x=>x.name===name);if(!c||state.actionsLeft<=0||state.budget<c.cost)return;state.budget=+(state.budget-c.cost).toFixed(2);state.actionsLeft--;state.built.push(c.name);Object.entries(c.effects).forEach(([k,v])=>state.scores[k]=clamp(state.scores[k]+v));render();result.textContent=`${c.name} built.`}
+function changeAd(name,d){const t=selectedAdTotal();if(d>0&&t>=3)return;state.adSpend[name]=Math.max(0,state.adSpend[name]+d);renderAds();renderForecast()}
+function launchCampaign(){if(state.actionsLeft>0)return alert('Use two actions first.');if(!selectedAdTotal())return alert('Add ad spend.');if(state.tax==='low'){state.scores.affordability=clamp(state.scores.affordability+5);state.budget+=2}else if(state.tax==='medium'){state.budget+=3}else{state.scores.affordability=clamp(state.scores.affordability-6);state.budget+=4}
+let reach=0;for(const [ch,a] of Object.entries(state.adSpend)){if(a>0)reach+=a*(groups[state.target].channels.includes(ch)?18:6)}const fit=groupMood(state.target),trust=state.scores.trust;const growth=Math.round((fit-45)*7+reach*7+(trust-50)*4);const delta=Math.max(-150,Math.min(950,growth));state.population=Math.max(7200,state.population+delta);state.scores.trust=clamp(state.scores.trust-Math.max(0,Math.round((reach-fit)/10)));result.innerHTML=`Population ${delta>=0?'+':''}${delta}.`;state.round++;if(state.round>state.maxRounds){alert('Game complete');restartGame();return}state.actionsLeft=2;state.built=[];state.adSpend=Object.fromEntries(Object.keys(adChannels).map(k=>[k,0]));render()}
+function restartGame(){state=freshState();render();result.textContent='Pick two actions.'}
+launchBtn.onclick=launchCampaign;resetBtn.onclick=restartGame;window.applyAction=applyAction;window.changeAd=changeAd;restartGame();
+</script></body></html>
